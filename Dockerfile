@@ -1,5 +1,6 @@
-FROM ruby:2.4.0	
-ENV RUBYGEMS_VERSION=2.7.0
+FROM ruby:3.2.2
+ENV RUBYGEMS_VERSION=3.4.19
+
 # Set default locale for the environment	
 ENV LC_ALL C.UTF-8	
 ENV LANG en_US.UTF-8	

@@ -12,4 +12,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ secrets.GITHUB_REPOSITORY }}
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
-        uses: zyksir/zhuyikai.github.io@pages
+        uses: zyksir/zyksir.github.io@master
