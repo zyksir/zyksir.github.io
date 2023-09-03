@@ -117,7 +117,15 @@
 
 <!-- Google Analytics -->
 {% if site.ga_track_id %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.ga_track_id }}"></script>
 <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '{{ site.ga_track_id }}');
+</script>
+<!-- <script>
     // dynamic User by Hux
     var _gaId = '{{ site.ga_track_id }}';
     var _gaDomain = '{{ site.ga_domain }}';
@@ -132,7 +140,7 @@
 
     ga('create', _gaId, _gaDomain);
     ga('send', 'pageview');
-</script>
+</script> -->
 {% endif %}
 
 

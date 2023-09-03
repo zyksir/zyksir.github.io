@@ -62,15 +62,15 @@ kramdown:
 disqus_username: yikaizhu
 
 # Netease settings
-netease_comment: true
+netease_comment: false
 
 # Analytics settings
 # Baidu Analytics
-# ba_track_id: [your track id]
+# ba_track_id: 196ae0d2a7f94f1a7e16a435f02cff16
 
-# # Google Analytics
-# ga_track_id: "UA-49627206-1" # Format: UA-xxxxxx-xx
-# ga_domain: zyksir.github.io
+# Google Analytics
+ga_track_id: "G-ZSJ13EK1TT" # Format: UA-xxxxxx-xx
+ga_domain: zyksir.github.io
 
 # Sidebar settings
 sidebar: true # whether or not using Sidebar.
