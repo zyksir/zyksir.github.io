@@ -92,6 +92,7 @@ page-mathjax: false
 # Friends
 friends:
   [
+    { title: "Wenxin Cheng", href: "https://www.linkedin.com/in/gracewx/"},
     { title: "Xinhao Kong", href: "https://sigempty.github.io/" },
     { title: "Ziqi Pang", href: "https://ziqipang.github.io/" }
   ]
