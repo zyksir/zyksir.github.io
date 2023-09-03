@@ -13,4 +13,11 @@
 ## Replace my info with yours
 
 1. in [_config.yml](./_config.yml), change every personal information to yours.
-2. to enable comment, register an account in [disqus](https://disqus.com/) and modify the `disqus_username` in [_config.yml](./_config.yml).
+2. to enable disqus comment, I go to https://disqus.com/, click `get started`, click `I want to install disqus on my website`. follow their instructions you will get a js code, just copy and paste by searching.`disqus_enable`. you can watch [this video](https://disqus.com/admin/install/platforms/universalcode/). They have free services and it's enough for my use case.
+3. to enbale utterances comment, go to [utterances](https://github.com/apps/utterances) and install it. After follow this website you will get a js code, just copy and paste by searching `utterances_enable`.
+
+## Post New Blog
+
+```bash
+rake post title="TITLE" subtitle="SUBTITLE"
+```
