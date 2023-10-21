@@ -10,7 +10,7 @@ tags: ["machine learning system", "class note"]
 
 ## 序
 
-这篇文章是[CMU 10-414/714](https://dlsyscourse.org/)的学习笔记第一篇。主要概括课程前8讲的内容。我感觉前五讲中的重点如下，欢迎大家评论补充。
+这篇文章是[CMU 10-414/714](https://dlsyscourse.org/)的学习笔记第一篇。主要概括课程前5讲的内容。我感觉前五讲中的重点如下，欢迎大家评论补充。
 
 1. 机器学习系统的基本框架(Framework)
 2. 自动微分(Automatic Differentiation)及其实现细节
