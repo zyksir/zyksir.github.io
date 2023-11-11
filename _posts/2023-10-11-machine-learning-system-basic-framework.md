@@ -19,7 +19,7 @@ tags: ["machine learning system", "class note"]
 
 ## Machine Learning Framework
 
-![img](img/notes/MLsystem_pic1.PNG)
+![img](../img/notes/MLsystem_pic1.PNG)
 上图包含了机器学习的主体流程以及主体模块:`hypothesis class, loss function, optimizer`。
 
 - `hypothesis class`具体到代码中就是`nn.Module class`。对于给定的输入，该模块可以计算输出。一般这个模块中会包含一些训练参数。这里值得一提的是，如何初始化这些训练参数是非常重要的，但考虑到这个不是 engineer 该考虑的东西，其笔记我会放在附录。
@@ -35,7 +35,7 @@ tags: ["machine learning system", "class note"]
 
 ### 计算图
 
-![img](img/notes/ComputationGraph.png)
+![img](../img/notes/ComputationGraph.png)
 
 上图是$\mathrm{y}=\mathrm{f}\left(x_1, x_2\right)=\ln \left(x_1\right)+x_1 x_2-\sin x_2$ 的计算图。这是一个很复杂的计算公式，但是这个公式是由很多简单的基本运算组成的。我们将每个数字亦或是中间变量视为一个节点，运算视为边，那么整个计算公式就是一个有向无环图。如果是二元运算，比如加法，一个运算会对应两条边。
 

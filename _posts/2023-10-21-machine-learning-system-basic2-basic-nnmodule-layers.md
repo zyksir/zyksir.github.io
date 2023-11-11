@@ -22,7 +22,7 @@ tags: ["machine learning system", "class note"]
 - 如果使用全零的方式初始化参数，亦或是中间某个时刻参数变成了全零，由于 Linear 层梯度和参数是线性的关系(即 dW = X W)，梯度也会变成全零，模型至此再无进步的余地。
 - 如果使用正态分布来初始化参数，即$W_i \sim \mathcal{N}\left(0, \sigma^2 I\right)$, 那么方差的选择至关重要。方差会影响每一层激活值的大小(准确的来说是norm)，进而会影响每一层梯度的大小；更糟糕的是，这个影响会随着模型层数的增加越来越大。过大的方差会导致梯度爆炸，过小的方差则会导致梯度消失。详细的数学论证可以看[这个 slides 的第25页](https://dlsyscourse.org/slides/fc_init_opt.pdf)，一个基本的结论，合适的方差应该取值：$\frac{2}{n}$，下图则说明了如果方差大于或者大于这个值会导致梯度爆炸/梯度消失。
 
-![img](img/notes/MLSys_init.png)
+![img](../img/notes/MLSys_init.png)
 
 事实上，有很多工作是关于如何初始化参数的。在 hw2中，我们会分别实现下面四种初始化方式。在给定了数学公式之后，用 python 实现起来是非常简单的。
 
@@ -37,7 +37,7 @@ $$
 y = w \circ \frac{x_i - \textbf{E}[x]}{((\textbf{Var}[x]+\epsilon)^{1/2})} + b
 $$
 
-![img](img/notes/MLSys_layernorm.png)
+![img](../img/notes/MLSys_layernorm.png)
 
 **Batch Normalization**
 还有一个很奇怪的想法是 BatchNormalization 。其采用同 Layer Normalization 的公式，只是均值和方差是 Batch 这个维度的。计算公式如下: $y = \frac{(x - \hat{m}u)}{((\hat{\sigma}^2_{i+1})_j+\epsilon)^{1/2}}$。这里的 $\hat{m}, \hat{\sigma}$ 不是需要计算梯度的参数，仅仅是代表一个需要更新的状态 $\hat{m} = \beta \hat{m} + (1-\beta)\mathbf{E}\left[z\right], \hat{\sigma} = \beta \hat{\sigma} + (1-\beta)\mathbf{Var}\left[z\right], \text{where} \beta is \text{momentum}$.
