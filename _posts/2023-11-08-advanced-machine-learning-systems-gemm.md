@@ -37,7 +37,7 @@ $$
 
 本小节从CUDA编程模型开始，介绍如何编写一个正确的GEMM kernel。在CUDA编程模型中，计算是一个三层的模型。每次调用CUDA kernel会生成一个grid，一个grid包含了多个block，每个block包含了至多1024个thread。我们编写的函数就是会运行在每个thread上。CUDA提供了一些变量来提供在这个全局的信息，例如一个block中thread的数量可以通过blockDim变量获得。这个变量包含了三个int值，代表了block每个维度上有几个thread。可以参考下图：
 
-![img](../img/notes/GEMM/naive-kernel.png)
+![img](../../../../img/notes/GEMM/naive-kernel.png)
 
 类似的，一个grid里block的个数也可以通过gridDim变量得到。在本章里，为了快速的实现一个正确的kernel，我们可以简单的认为一个block里不同的thread是等价的。在实现naive版本的时候，每个thread负责计算C中的一个元素。为了计算这个元素，我们需要load A中的一行和B中的一列。代码实现如下:
 
@@ -55,7 +55,7 @@ if (x < M && y < N>) {
 
 这个代码可以按照下图理解。每一个block负责计算图中紫色的部分，每个thread负责计算图中橙色的部分我们通过blockIdx和threadIdx来判断当前block的编号和thread的编号，进而唯一确定当前的threadId, 以此判断这个thread负责计算哪个部分。
 
-![img](../img/notes/GEMM/naive.png)
+![img](../../../../img/notes/GEMM/naive.png)
 
 下面我们分析GEMM代码的理论最优性能，以此判断我们的实现的优劣，以 M = N = K = 4096为例：
 
@@ -64,7 +64,7 @@ if (x < M && y < N>) {
 
 当前我们访存模式如下图所示。如果两个thread在一个block里，他们的threadIdx分别为(0, 0)和(1, 0), 它们会访问B中相同的一列，以及A中相邻的两行。每个thread需要读2\*4096个float，而我们有4096\*4096个thread, 一个我们需要从显存里读512GB的数据，这个数据是过高的估计，因为没有考虑上面相邻threadIdx其实只需要访问B一次。那哪怕是512GB的显存和2039GB/s的带宽，我们依然只需要250ms，但是而naive版本需要500ms，而实测cublas只需要8ms。
 
-![img](../img/notes/GEMM/naive_kernel_mem_access.png)
+![img](../../../../img/notes/GEMM/naive_kernel_mem_access.png)
 
 为了探究当前版本代码的瓶颈在哪里，我们使用如下命令进行profile。可以看到主要的问题是访存，因为内存带宽被打满了，而计算没有被打满。在compute compute里也会看到一个建议：目前一个线程为了访问4Byte的数据会导致传输528Byte的数据被传输，也就是说，我们没有达到最优解的原因是我们的访存效率只有1%。
 
@@ -72,24 +72,24 @@ if (x < M && y < N>) {
 ncu -o sgemm --set full --kernel-id ::sgemm_naive:6 sgemm
 ```
 
-![img](../img/notes/GEMM/naive_profile.png)
+![img](../../../../img/notes/GEMM/naive_profile.png)
 
 ## Memory Coalescing
 
 既然我们需要优化内存访问，我们首先需要了解英伟达GPU的基本架构。第一个需要了解的概念是Warp：在执行的时候，同一个block里的thread会被分组，每个组就是一个warp。GPU在运行的时候，会由 warp scheduler 来决定具体执行哪些指令，warp scheduler 会以 warp 为单位执行指令。初学者可以简单的理解为，一个warp里的线程总是会被同时执行且运行相同的代码。每个multiprocessor里会有4个warp scheduler。我们会按照threadId来划分warp，相邻的threadId会被划分到一个warp里去。对于每个thread，threadId都是唯一的。threadId的计算方式是`threadId = threadIdx.x+blockDim.x*(threadIdx.y+blockDim.y*threadIdx.z)`。下面的图就是一个warp的一个例子。为了简化图，下图中的warpsize等于8，实际warpsize的值是32。
 
-![img](../img/notes/GEMM/threadId_to_warp_mapping.png)
+![img](../../../../img/notes/GEMM/threadId_to_warp_mapping.png)
 
 GPU支持32B,64B,128B的访存请求。如果如果每个thread要访问1个float，且一个warp的多个thread访问的显存是连续的，且内存地址是对齐(aligned)的，那么他们的访存请求会被聚合成一个32*4B=128B的请求，这就是coalescing。下图就是连续显存的访存请求被聚合成一个请求的例子。每个warp发出的8个memory access request只用了两次32B的load。(译者注：这里可能是原作者的笔误，如果warpsize=8, 每个thread访问4Byte的数据，可以被聚合成一个32B的请求而不是两个。但是不影响读者理解，图只是辅助，没必要抠细节)
 
-![img](../img/notes/GEMM/GMEM_coalescing.png)
+![img](../../../../img/notes/GEMM/GMEM_coalescing.png)
 
 回忆naive kernel的访存模式，(0, 0), (0, 1)在一个warp里，但是去会去访问A中的不同行，不同行的数据并不是连续的。global没法一次就取回所有的数据，所以一个warp每次都需要进行很多次访存。因此naive kernel访问A的方式就像下图一样混乱。(译者注：在4096的GEMM例子里，8个thread要访问的地址应该差的很远，因此会需要8个memory access)
 
-![img](../img/notes/GEMM/Naive_kernel_mem_coalescing.png)
+![img](../../../../img/notes/GEMM/Naive_kernel_mem_coalescing.png)
 
 既然知道了这个，我们的思路就很清晰了，我们要让一个warp里的不同的thread访问相邻的数据。下图是我们想实现的coalescing kernel和naive kernel访存模式的对比图。在coalescing kernel里，对A的访问可以通过broadcast实现，对B的访问可以实现聚合。
-![img](../img/notes/GEMM/Naive_kernel_improved_access.png)
+![img](../../../../img/notes/GEMM/Naive_kernel_improved_access.png)
 
 这个kernel的改动非常简单，只需要修改前两行。而这个简单的优化会让整个程序的性能从500ms降低到52ms。
 
@@ -104,11 +104,11 @@ const int y = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
 
 上一个kernel的profile结果显示，L2 Cache的命中率只有10%。这个是我们本章要优化的重点。现在我们就需要了解一下A100的内存架构了(下图来自[这里](https://developer.nvidia.com/blog/cuda-refresher-cuda-programming-model/)): 所有的block逻辑上共享一个L2 Cache，亦或是一个shared memory。当然虽然逻辑上共享，但其实每个block访问的是自己的shared memory。A100机器中，每个block可以访问42KB的shared memory。shared memory是在芯片上的，因此相比global memory，它有更小的时延和更高的带宽。(siboehm和我都没有找到Ampere架构的shared memory带宽，但是[这篇论文](https://arxiv.org/abs/1804.06826)的实现表明Volta上global memory的带宽是750GB/s，shared memory的带宽是12080GB/s，二者差了16倍！)
 
-![img](../img/notes/GEMM/memory-hierarchy-in-gpus-2.png)
+![img](../../../../img/notes/GEMM/memory-hierarchy-in-gpus-2.png)
 
 下图是整个系列中至关重要的一个抽象。一个block完成了C矩阵中的一个子矩阵的计算。为了完成这个子矩阵的计算，这个block需要从A中load好几行，从B中load好几列。既然一个block里的不同thread会用到相同的数据，那我们就先让不同的thread将数据从global memory加载到 shared memory中，然后每个thread再各自从shared memory中load数据。这样就可以有效提高shared memory的cache命中率。在下图中，每次先load 矩阵A和B的一部分，称之为blockTile，然后用这些数据计算，得到中间结果。
 
-![img](../img/notes/GEMM/cache-blocking.png)
+![img](../../../../img/notes/GEMM/cache-blocking.png)
 
 下面是优化后kernel的核心代码。`__syncthreads()`会阻塞线程直到一个block里所有的thread都执行完毕。这里我们必须保证计算和访存不可以交叠，否则计算的时候拿到的可能是错误的数据！
 
@@ -139,13 +139,13 @@ for (int bkIdx = 0; bkIdx < K; bkIdx += BK) {
 
 但是，cublas的时延是8.8ms。我们距离cublas还有很长的路。查看Nsight Compute的时候看到了两个warning。第一个显示Eligible Warps的数量不够多，导致机器空闲的时候warp scheduler没有warp可以去调度。第二个图显示了大部分thread被阻止的原因是 Stall MIO Throttle(详情可以参考这里[Kernel Profiling Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference))，意思就是，Warp因为等待Memory IO所以处于stall状态无法执行。这里提到的stall原因可能有special math instructions, dynamic branches, shared memory instructions。考虑我们的代码只有shared memory的访存，因此得到结论，我们大部分时间在等待shared memory的访存。另外查看执行执行的类型，发现大部分指令都是LD(下图三)指令，我们也可以通过Godbolt来查看编译后得到的指令，确实循环里load指令多于fma指令，同时我们知道访存比计算慢得多。综上，我们可以得出结论：当前kernel的问题是运行时大部分时间都在等待访存结果。
 
-![img](../img/notes/GEMM/sgemm_coal_instructions.png)
-![img](../img/notes/GEMM/shared_memory_warps.png)
-![img](../img/notes/GEMM/shared_warps_state.png)
+![img](../../../../img/notes/GEMM/sgemm_coal_instructions.png)
+![img](../../../../img/notes/GEMM/shared_memory_warps.png)
+![img](../../../../img/notes/GEMM/shared_warps_state.png)
 
 基于此，我们引入theadTiling，其目标在于让计算掩盖访存开销。每个thread负责计算TM\*TN个元素，也就是一个threadTile，先将A和B的blockTile load到shared memory中，然后每次再将shared memory中的blockTile load到寄存器数组中。最后利用寄存里数组里的数据计算一个threadTile的结果。
 
-![img](../img/notes/GEMM/kernel_5_2D_blocktiling.png)
+![img](../../../../img/notes/GEMM/kernel_5_2D_blocktiling.png)
 
 ```c++
 float threadResults[TM][TN] = {0.0};
@@ -171,16 +171,16 @@ for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
 ```
 
 原作者为了让我们理解dotIdx这个loop究竟在做什么还贴心的画了下面这张图，向我们展示了这个循环的目的就是遍历As和Bs里的所有的数据。
-![img](../img/notes/GEMM/kernel_5_reg_blocking.png)
+![img](../../../../img/notes/GEMM/kernel_5_reg_blocking.png)
 
 通过tiling，我们将时延从31ms提升到了11ms。至此，我们当前的程序结构如下图所示：
-![img](../img/notes/GEMM/tiling_loop_structure.png)
+![img](../../../../img/notes/GEMM/tiling_loop_structure.png)
 
 ## Transpose As & Vertorize
 
 一个很直接想法是，是不是可以通过对As进行转置。这样每次load shared memory的时候访问的都是连续的地址空间。(作者声称可以通过这个优化实现3%的提升，原因是之前LD32指令变成了LD128指令。但是译者用Godbolt编译之后发现不转置用的就是LD128，怪事。)
 
-![img](../img/notes/GEMM/kernel_6_As_transpose.png)
+![img](../../../../img/notes/GEMM/kernel_6_As_transpose.png)
 
 之后我们考虑使用vector数据结构，也就是float4, 核心代码如下，其效果是将原来的ld.global.f32编程了ld.global.v4.f32指令，本质上也是将LD32变成了LD128。原作者一开始觉得编译器就应该自动优化global memory的访存，后来他意识到global memory的访存不一定满足aligned这个条件，所以编译器不会自动优化。而shared memory编译器是可以保证aligned的，因此会自动优化。
 
@@ -258,7 +258,7 @@ do {
 
 最后一个优化，是在blockTile和threadTile之间引入warp。更细粒度的决定每个warp的行为。每个thread负责计算一个TM\*TN的小矩阵，每个warp则负责计算WM\*WN的矩阵。因为warp是调度的基本单位，warp tiling方便我们之后来看bank conflicts(本文不会涉及); 同时warpTiling可以更好地提升局部性，提升cache命中率。
 
-![img](../img/notes/GEMM/kernel_10_warp_tiling.png)
+![img](../../../../img/notes/GEMM/kernel_10_warp_tiling.png)
 
 在我们之前的代码中，只有`computeThreadTile` 和 `loadThreadTile` 的逻辑需要改变。原来一个thread只负责一个threadTile，现在负责多个threadTile, 因此需要引入额外的循环来处理warp层面的tile。
 
