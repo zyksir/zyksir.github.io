@@ -52,25 +52,8 @@ layout: default
 </div>
 
 {% if site.page-mathjax %}
-<!-- Add support for Mathjax by Voleking-->
+<!-- Add support for Mathjax in page by Voleking-->
 <!-- If you want to see formulars well in post preview, Maybe you should add this.-->
 <!-- However, most of the time formulars may not appear in the post preview, you can delete it.-->
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    TeX: {
-      equationNumbers: {
-        autoNumber: "AMS"
-      }
-    },
-    tex2jax: {
-      inlineMath: [ ['$','$'] ],
-      displayMath: [ ['$$','$$'] ],
-      processEscapes: true,
-    },
-    "HTML-CSS": { fonts: ["TeX"] }
-  });
-</script>
-<script type="text/javascript"
-   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_HTML,http://myserver.com/MathJax/config/local/local.js">
-</script>
+  {% include mathjax_support.html %}
 {% endif %}
