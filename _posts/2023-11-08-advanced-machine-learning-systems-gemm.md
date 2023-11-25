@@ -4,7 +4,7 @@ title: "Advanced Machine Learning Systems: GEMM"
 subtitle: "notes of how to optimize SGEMM from scratch"
 date: 2023-11-08
 author: "Yikai"
-header-img: "img/background/post-default-bg.jpg"
+header-img: "img/notes/GEMM/GEMM_results.jpg"
 tags: ["machine learning system", "HPC", "CUDA"]
 ---
 
@@ -18,7 +18,7 @@ tags: ["machine learning system", "HPC", "CUDA"]
 
 站在这个目的之上，我并不需要从头自己去实现，甚至我必须要多去抄一抄别人的实现, 然后思考他们为什么要这么实现。本文主要是翻译自 [siboehm的博客](https://siboehm.com/articles/22/CUDA-MMM), 他的图画的实在是太棒了, 非常的形象。我做了一些自己的补充，希望不是画蛇添足吧。
 
-本文会从最简单的GEMM算子开始，一步一步优化，直到性能逼近cuBLAS库(Nvidia的官方库)中的`cublasSgemm`函数。首先介绍一下我们本次要解决的问题 SGEMM。数学上的定义如下；具体的，
+本文会从最简单的GEMM算子开始，一步一步优化，直到性能逼近cuBLAS库(Nvidia的官方库)中的`cublasSgemm`函数,最后我们能做到的效果如下图所示。首先介绍一下我们本次要解决的问题 SGEMM。数学上的定义如下；具体的，
 $$
 \begin{aligned}
 &\boldsymbol{C} \leftarrow \alpha \boldsymbol{A} \boldsymbol{B}+\beta \boldsymbol{C} \\
@@ -26,6 +26,8 @@ $$
 &c_{i, j} = \sum_{k=1}^K a_{i, k} b_{k, j}
 \end{aligned}
 $$
+
+![img](../../../../img/notes/GEMM/GEMM_results.jpg)
 
 <!-- ## 程序架构
 
