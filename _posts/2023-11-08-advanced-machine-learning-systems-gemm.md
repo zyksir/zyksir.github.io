@@ -46,7 +46,7 @@ $$
 ```C++
 const uint x = blockIdx.x * blockDim.x + threadIdx.x;
 const uint y = blockIdx.y * blockDim.y + threadIdx.y;
-if (x < M && y < N>) {
+if (x < M && y < N) {
   for (int i = 0; i < K; ++i) {
     tmp += A[x * K + i] * B[i * N + y];
   }
@@ -61,8 +61,8 @@ if (x < M && y < N>) {
 
 下面我们分析GEMM代码的理论最优性能，以此判断我们的实现的优劣，以 M = N = K = 4096为例：
 
-1. 计算量：$2 \times 4092^3 + 4092^2 = 137 \text{GFLOP}$。[A100 FP32的理论最优值](https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf)为 19.5TFLOPS。因此至少需要花7ms在计算上。
-2. 至少需要读 $ 3 * 4092^2 * 4B = 201MB $数据，写 $4092^2 * 4B = 67MB$数据，A100 80GB的带宽是2039GB/s，因此至少需要花 268 / 1024 / 2039 = 0.1ms在访存上。注意这个值永远不可能达到，因为我们cache不够大，不可能塞下所有的数据，因此一定会有数据被重复读。
+1. 计算量：$2 \times 4096^3 + 4096^2 = 137 \text{GFLOP}$。 [A100 FP32的理论最优值](https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf)为 19.5TFLOPS。因此至少需要花7ms在计算上。
+2. 至少需要读 $ 3 * 4096^2 * 4B = 192MB $数据，写 $4096^2 * 4B = 64MB$数据，A100 80GB的带宽是2039GB/s，因此至少需要花 (192+64) / 1024 / 2039 = 0.1ms在访存上。注意这个值永远不可能达到，因为我们cache不够大，不可能塞下所有的数据，因此一定会有数据被重复读。
 
 当前我们访存模式如下图所示。如果两个thread在一个block里，他们的threadIdx分别为(0, 0)和(1, 0), 它们会访问B中相同的一列，以及A中相邻的两行。每个thread需要读2\*4096个float，而我们有4096\*4096个thread, 一个我们需要从显存里读512GB的数据，这个数据是过高的估计，因为没有考虑上面相邻threadIdx其实只需要访问B一次。那哪怕是512GB的显存和2039GB/s的带宽，我们依然只需要250ms，但是而naive版本需要500ms，而实测cublas只需要8ms。
 
@@ -104,7 +104,7 @@ const int y = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
 
 ## Shared Memory/BlockTiling
 
-上一个kernel的profile结果显示，L2 Cache的命中率只有10%。这个是我们本章要优化的重点。现在我们就需要了解一下A100的内存架构了(下图来自[这里](https://developer.nvidia.com/blog/cuda-refresher-cuda-programming-model/)): 所有的block逻辑上共享一个L2 Cache，亦或是一个shared memory。当然虽然逻辑上共享，但其实每个block访问的是自己的shared memory。A100机器中，每个block可以访问42KB的shared memory。shared memory是在芯片上的，因此相比global memory，它有更小的时延和更高的带宽。(siboehm和我都没有找到Ampere架构的shared memory带宽，但是[这篇论文](https://arxiv.org/abs/1804.06826)的实现表明Volta上global memory的带宽是750GB/s，shared memory的带宽是12080GB/s，二者差了16倍！)
+一个kernel的profile结果显示，L2 Cache的命中率只有10%。这个是我们本章要优化的现在我们就需要了解一下A100的内存架构了(下图来自[这里](https://developer.nvidia.com/blog/cuda-refresher-cuda-programming-model/)):每个block可以访问42KB的shared memory。shared memory是在芯片上的，因此相比global memory，它有更小的时延和更高的带宽。(siboehm和我都没有找到Ampere架构的shared memory带宽，但是[这篇论文](https://arxiv.org/abs/1804.06826)的实现表明Volta上global memory的带宽是750GB/s，shared memory的带宽是12080GB/s，二者差了16倍！根据Flash Atten论文里的图，shared memory的带宽可以达到19TB/s)
 
 ![img](../../../../img/notes/GEMM/memory-hierarchy-in-gpus-2.png)
 
