@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "CUDA Mode 学习笔记1   Lec9: Reduction"
+title: "CUDA Mode 学习笔记1: Reduction"
 subtitle: "notes of how to optimize Reduction from scratch"
 date: 2024-09-22
 author: "Yikai"
@@ -49,13 +49,13 @@ def reduction(op: Function(Item, Item), X: List[Item]) -> Item:
 ## Version 3: Sequential Addressing
 
 解决`bank conflict`的办法就是`Sequential Addressing`，也就是保证每个thread访问的数据有不同的bank id即可。为此我们再调整一下Tree，保证每个warp访问的数据也是彼此相邻的。
-![img](../../../../img/notes/reduce/3.Demo.png)
-![img](../../../../img/notes/reduce/3.Code.png)
+![img](../../../../img/notes/reduce/3.demo.png)
+![img](../../../../img/notes/reduce/3.code.png)
 
 ## Version 4: First Add During Load
 
 Version 3里的For Loop有一个问题: 哪怕是第一个迭代，也有一半的thread是idle的。这一半的thread只是load了一个data就结束了工作。这就有点暴殄天物了。为了优化这第一个迭代，我们可以一次load两个数据。这种优化思路也被称为`Coarsen`。
-![img](../../../../img/notes/reduce/4.Code.png)
+![img](../../../../img/notes/reduce/4.code.png)
 
 ## Version 5 & 6: Unroll
 
@@ -73,11 +73,11 @@ CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
 
 第一个要消除的是`__syncthreads`，因为通常来说，synchronize的代价是较大的。在A100里，一个warp有32个thread，这32个thread的行为就根本不需要synchronize了，他们天然就是完全一致的。因此我们如下调整代码。这里值得注意的是sdata里的 volatile 前缀，这是为了保证数据别被cache在寄存器里，每次都要直接写回到Shared Memory里。
 
-![img](../../../../img/notes/reduce/5.Code.png)
+![img](../../../../img/notes/reduce/5.code.png)
 
 第二个要消除的是`Loop`里的其他辅助指令。如果我们从一开始就知道每个block有多少个thread，那我们就可以完全不需要Loop。非常幸运的是，我们是可以知道的。首先我们知道A100一个thread block 最多有2048个thread，其次我们可以通过template，将blockSize作为一个常量传入。那么如果我们blockSize比较小的时候，循环次数也会跟着变小。无需多说，代码如下。红色部分的代码可以交给编译器去优化，因为blockSize是编译时期就已经确定的常量。
 
-![img](../../../../img/notes/reduce/6.Code.png)
+![img](../../../../img/notes/reduce/6.code.png)
 
 ## Version 7: algorithm cascading - 调参
 
@@ -91,11 +91,16 @@ $$
 \text{For} N=2^D, \sum_{S=1}^{D} 2^{D-S} = N-1
 $$
 
-- 如果我们 Launch O(N/log N) thread，每个thread需要load O(log N)个Item，然后再进行 O(log N)次For Loop，这样总的时间复杂度就从 O(N log N) 降为 O(N)。这个优化被称为 `algorithm cascading`。
+- 如果我们 Launch O(N/log N) thread，每个thread需要load O(log N)个Item，然后再进行 O(log N)次For Loop，这样总的时间复杂度就从 O(N log N) 降为 O(N)。这个优化被称为 `algorithm cascading`。改动如下
+
+![img](../../../../img/notes/reduce/7.code.png)
 
 ## 实验分析
 
 下面是我再A100机器上做的实验，实验代码参考[我的代码仓库](https://github.com/zyksir/CudaDiveDeep)里`reduce`目录下的代码。下面 reduce7 下划线之后的数字就是每个thread应该load次Item(每次load 2个item，详见代码实现)；当N=(1<<29)时，理论最优解应该就是29/2，因此实际的最优解是16。并且最终的带宽已经非常接近理论上限1555GB/s了。
+
+同时，利用[这段代码](https://github.com/zyksir/CudaDiveDeep/blob/main/reduce/reduce.py), 我还在A100上进行了最终的实现和Pytorch的差异。我发现如果只跑10次Reduction，Pytorch要花40ms，我的实现只需要29ms；但如果是100ms, pytorch要花245ms, 我的实现要花261ms。这里我认为是Pytorch在Malloc上做了优化，毕竟每次都Alloc新的显存太不优雅了。`torch.compile`则非常的不靠谱，不知道为啥性能很低。
+
 ```text
 CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
 [reduce0]GPU time: 0.015917 s, Memory Bandwidth: 134.918GB/s
