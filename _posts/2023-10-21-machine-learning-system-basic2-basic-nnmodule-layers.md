@@ -45,6 +45,10 @@ $$
 - 关于 Batch Norm 为什么能 work，目前学术界仍然存在争论。原作者认为其解决了模型参数分布 shift 的问题；一篇论文则认为其让 optimization landscape more smoothly.
 - 在hw2的实现中，更新 $\hat{m}, \hat{\sigma}$的过程要注意不引入额外的计算图节点，即应该使用a += b.data 而不是a+=b。
 
+**Other normalization**
+- Group normalization
+- instance nomalization
+
 **Regularization**
 Regularization的基本思想是限制权重的大小(“limiting the complexity of the function class”)，也就是在 loss 里加上 $\frac{\lambda}{2} \sum_{i=1}^D\left\|W_i\right\|_2^2$。这个在数学上等效于在 optimizer step 的时候加一个 weight decay。证明过程如下：
 $$W_i:=W_i-\alpha \nabla_{W_i} \ell(h(X), y)-\alpha \lambda W_i=(1-\alpha \lambda) W_i-\alpha \nabla_{W_i} \ell(h(X), y)$$

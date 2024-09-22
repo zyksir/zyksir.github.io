@@ -60,12 +60,14 @@ Version 3里的For Loop有一个问题: 哪怕是第一个迭代，也有一半�
 ## Version 5 & 6: Unroll
 
 我们来测一下目前为止的带宽。我们的数据量为512M，数据类型为int，具体消息大小也就是2GB；测试环境是A100，理论带宽为1555GB/s。测试的结果如下:
-> CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
+```text
+CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
 [reduce0]GPU time: 0.015917 s, Memory Bandwidth: 134.918GB/s
 [reduce1]GPU time: 0.008949 s, Memory Bandwidth: 239.969GB/s
 [reduce2]GPU time: 0.007367 s, Memory Bandwidth: 291.5GB/s
 [reduce3]GPU time: 0.003993 s, Memory Bandwidth: 537.812GB/s
 [reduce4]GPU time: 0.003992 s, Memory Bandwidth: 537.947GB/s
+```
 
 可以看到，距离理论带宽还是差距。这个时候我们就要考虑并行策略里最常见的杀器: Unroll Loops。unroll loop可以优化 instruction overhead；因为在循环里，我们会引入一些辅助指令(Ancillary instructions, 也就是除了load、store、arithmetic for the core computation之外的指令)。最典型的是`__syncthreads`; 另外的则是循环里`s > 0`和`s>>=1`这些语句。通过unroll我们可以将这些指令消除。
 
@@ -94,7 +96,8 @@ $$
 ## 实验分析
 
 下面是我再A100机器上做的实验，实验代码参考[我的代码仓库](https://github.com/zyksir/CudaDiveDeep)里`reduce`目录下的代码。下面 reduce7 下划线之后的数字就是每个thread应该load次Item(每次load 2个item，详见代码实现)；当N=(1<<29)时，理论最优解应该就是29/2，因此实际的最优解是16。并且最终的带宽已经非常接近理论上限1555GB/s了。
-> CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
+```text
+CPU time: 1.65679 s, CPU Memory Bandwidth: 1.29617GB/s
 [reduce0]GPU time: 0.015917 s, Memory Bandwidth: 134.918GB/s
 [reduce1]GPU time: 0.008949 s, Memory Bandwidth: 239.969GB/s
 [reduce2]GPU time: 0.007367 s, Memory Bandwidth: 291.5GB/s
@@ -113,3 +116,4 @@ $$
 [reduce7_256]GPU time: 0.001515 s, Memory Bandwidth: 1417.48GB/s
 [reduce7_512]GPU time: 0.001637 s, Memory Bandwidth: 1311.84GB/s
 [reduce7_1024]GPU time: 0.001959 s, Memory Bandwidth: 1096.21GB/s
+```
