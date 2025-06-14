@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "sglang dp attention"
+title: "sglang dp attention Walk Through"
 subtitle: "parallelism in sglang"
 date: 2025-06-06
 author: "Yikai"
@@ -10,72 +10,114 @@ tags: []
 
 ## Background
 
-在目前训练/推理的各个场景里，Attention层的并行策略和MoE层的并行策略是不一样的。这个已经逐渐成为了一种趋势，因为MoE层里有EP这个额外的并行策略考虑。目前Sglang的代码演进的很快，在理解一些high level的概念之后再去看代码，会发现都是一脉相承，会更顺畅的理解代码。
+在目前训练/推理的各个场景里，Attention层的并行策略和MoE层的并行策略是不一样的。这个已经逐渐成为了一种趋势，因为MoE层里有EP这个额外的并行策略考虑。目前Sglang的代码演进的很快，如果只看代码会发现可能过几天就变了；理解一些high level的概念之后再去看代码，会发现都是一脉相承，会更好的理解代码。
+本文重点看Sglang里`dp attention`这个概念，试图回答以下问题: 什么是 dp attention，为什么dp attention能带来性能提升，未来有什么演进的方向。欢迎大家多多交流。
+在正式介绍之前，引用SGLang v0.4 blog里的一张图，介绍一些代码里的一些参数以及与之对应的概念。
 
-本文会重点关注Attention层的并行策略，也就是Sglang里`dp attention`这个概念。本文会试图回答以下问题: 什么是 dp attention，为什么dp attention能带来性能提升，未来有什么演进的方向。欢迎大家多多交流。
-
-在正式介绍之前，引用SGLang v0.4 blog里的一张图，介绍一些代码里的一些参数以及与之对应的概念: 
-
-![img](https://lmsys.org/images/blog/sglang_v0_4/dp_attention.svg)
+![img](../../../../img/llm/dp_attention/overview.PNG)
 
 - `tp_size`: 这个其实说的是World-Size。上图可以理解成`tp_size=4`
 
 - `dp_size`: 等价于`attention_dp_size`，代表attention层会同时处理多少个micro-batch。上图中`dp_size=4`
 
-- `attn_tp_size`: 其值等于`tp_size//dp_size`，上图中`attn_tp_size=1`
+- `attn_tp_size`: 其值等于`tp_size//dp_size`，代表Attention层的tp-size，上图中`attn_tp_size=1`
 
 ## DP Attention
 
-Attention层的输入是一个完整Feature
-Attention层的输出是不完整的Feature，需要进行Atten TP Group之间的AllReduce才能得到完整有意义的Feature
-那么下面这段代码其实是有点冗余的，正确且精简的代码如下所示；其中 attn_tp_group等价于tp_mod_dp_group，只是tp_mod_dp这个词对于我这个熟悉预训练的人来说非常违和，下面是我的一点碎碎念
-划分拓扑时，attn_tp是优先于dp的。这个优先级是算是我自己想的一个概念，但是在megatron里其实就有体现了。换言之，如果有4个节点，TP=4，DP=2，attn_tp_group 会被分到[0, 1]，dp会被分到[0, 2]。[0, 1]意味着gpu在物理上更近，也意味着通信效率严格大于等于[0, 2]这个group。
-def forward_normal(...):
-  hidden_states = self_attn()
-  if attn_tp_group.size() > 1: # equal to tp_mod_dp_group
-    all_reduce(hidden_states, attn_tp_group)
-  hidden_states, residual = post_attention_layernorm(hidden_states, residual)
-  if attn_dp_group.size() > 1:
-    all_gather(hidden_states_for_moe, hidden_states, attn_dp_group)
+简单做一个概述：`dp-attention` 是一种将Attention层并行策略和MLP层并行策略分离的策略，Attention层的的tp-size引入了`attn_tp_size` 来单独描述。在下面的代码例子里，首先介绍非DeepEP模式下的MLP Layer实现，在代码里对应FusedMoE和EPMoE两个实现，这两个实现对于MLP层Input的要求是一样的；然后介绍DeepEP实现下DP Attention的特点。
 
+- "为什么XXXLayer的输入是一个micro-batch"类似的不在这篇文章里叙述。这就需要讲解不同Layer的代码，能讲很多。
 
-Decoder Layer Normal Forward
-# DeepseekV2DecoderLayer
-def forward_normal(...):
-  hidden_states, residual = input_layernorm(hidden_states, residual)
-  hidden_states = self_attn(hidden_states)
-  if attn_tp_size > 1:
-    hidden_states = all_reduce(hidden_states, attn_tp_group)
-  hidden_states, residual = post_attention_layernorm(hidden_states, residual)
-  if attn_dp_size > 1:
-    hidden_states = all_gather(hidden_states, attn_dp_group)
-  hidden_states = self.mlp(hidden_states)
-  hidden_states = all_reduce(hidden_states, tp_group)
-  hidden_states = slice(hidden_states, attn_dp_rank)
-  # if attn_dp_size > 1:
-  #   hidden_states = reduce_scatter(hidden_states, attn_dp_group)
-  # if attn_tp_size > 1:
-  #   hidden_states = all_reduce(hidden_states, attn_tp_group)
-值得一提的是，AllGather和ReduceScatter是一个对偶操作，二者必然是成对出现的，不然Shape就对不上了。最后两行的两个通信可以被合并成一个通信算子+一个Copy，这样是Sglang里的实现，all_reduce(x, tp_group) + slice(x, attn_dp_rank)，这个以增加通信量为代价，减少了一次通信的调用，可能可以降低了Latency。(其实我认为只是Sglang开发者没考虑的这么细，被我注释掉的代码可以平替最后两行，我认为是更优的选择)
-在attn_tp_size=1的场景下，把reduce-scatter拆成all-gather + slice的操作是低效的；slice这个算子本身耗时在2us左右，主要的效率损失预估来自于all-reduce相对于reduce-scatter引入的额外通信overhead
-这里的AllGather其实就是AlltoAll实现的一种替代。AllGather + Permutation的Fusion就变成了DeepEP的Dispatch算子；而Unpermutation + Slice的Fusion则是DeepEP里的Combine算子。这个MLP的实现会放在FusedMoE和EPMoE的实现里讲。目前只需要知道，这两个Class的实现要求拿到所有Batch的数据，换言之就是需要上面的这个AllGather操作。
-Decoder Layer DeepEP Forward
-# DeepseekV2DecoderLayer
-def forward_deepep(...):
-  hidden_states, residual = input_layernorm(hidden_states, residual)
-  if attn_tp_size > 1:
-    hidden_states = all_gather(hidden_states, attn_tp_group)
-  hidden_states = self_attn(hidden_states)
-  if attn_tp_size > 1:
-    hidden_states = reduce_scatter(hidden_states, attn_tp_group)
-  hidden_states, residual = post_attention_layernorm(hidden_states, residual)
-  hidden_states = self.mlp(hidden_states)
-DeepEP的实现的一个最大的特点是，可以省去那个AllGather操作了，因为在MLP Layer内部会做Dispatch和Combine，这里就包含了通信。但是可以看到attn_tp_group里的通信算子从AllReduce变成了AllGather + ReduceScatter，这是为什么呢？
-这部分不理解也没啥影响，在Decode阶段设置attn_tp_size=1是合理且常见的
-在代码里，deepep生效时，input_is_scattered必然是True；否则input_is_scattered必然是False。input_is_scattered意味着一个完整的Sequence可能被切分放到了不同AttnTPRank里，而在计算Attention的时候我们需要完整的Sequence，因此我们需要AllGather+ReduceScatter
-input_is_scattered必然是True，是因为DeepEP要求EP Group内每一个GPU上的数据都是不一样的。这样做Dispatch和Combine才有意义。而要做到这一点，这里引入了Sequence Parallelism + TP的方式，来吧一个Batch在TP内部也根据Sequence维度切分。
-FusedMoE - TP
-如果不开启--enable-ep-moe，那么会以TP的方式切分不同Expert上的专家。也就是每个GPU上都拥有所有专家的 1/tp_size。这里不做细述。
-EPMoE
-如果开启了--enable-ep-moe，那么tp_size实际上就是ep_size了。这里会选择将不同的Expert放于不同的GPU上。
-因为Cuda Graph要求每个Kernel的输入/输出shape是固定的，因此这里permute之后的输出其实是num_tokens * topk，每个GPU只有其中某一段是有数据的，其他全为0。groupgemm在编写的时候也需要考虑到这种情况。S
+- 下面画图里的xxx-mode 可以先忽略，这个目前是代码里做了很好的抽象，我会在最后对这部分做一个补充。
+
+### EP-MoE & FusedMoE
+
+![img](../../../../img/llm/dp_attention/EPMoE.PNG)
+
+- DecoderLayer的输入是一个micro-batch，和AttentionLayer的输入一致，因此不需要通信
+
+- Attention层的输出是一个micro-batch，MLP层的输入是所有micro-batch完整Feature。这里主要要先在attn-tp group内做一个all-reduce(tp的要求，保证Feature的完整)，然后再在attn-dp group内做一个all-gather；在sglang的实现里，tp = attn-tp * dp，所以选择直接在tp group内做一次all-reduce。关于这个选择是否合理放在后面讨论，目前知道就是这么做的。
+
+- MLP层内部会有一个tp_group的all_reduce，保证MLP层输出的feature不是一个shard
+
+- MLP层(EP-MoE模式和FusedMoE模式)输出则是所有micro-batch 完整Feature，DecoderLayer的输出是一个micro-batch Feature，因此最后会有取split的操作。不需要通信
+
+sglang的伪代码如下
+```python
+def forward_normal(hidden_states):
+    attn_input, residual = hidden_states, hidden_states
+    attn_output = self_attn(attn_input) # (mbs, h) -> (mbs, h)
+    gathered_buffer.fill(0)
+    gathered_buffer[dp_start:dp_end] = attn_output
+    hidden_states = all_reduce(gathered_buffer, tp_group)
+    residual = hidden_states[dp_start:dp_end]
+    mlp_input = layernorm(hidden_states)
+    mlp_output = mlp(mlp_input) # (mbs * dp, h) -> (mbs * dp, h)
+    return mlp_output[dp_start:dp_end]
+```
+
+上面的代码是相对比较完整的代码。其中一个all_reduce被封装在了mlp内部。只看这段代码，当dp=1时，gathered-buffer其实就是attn-output, 自然就不需要fill和copy的逻辑；按理说mlp-output也就不需要进行copy
+
+下面对伪代码中出现的all-reduce逻辑进行一个分析(对应上面伪代码中4-7行，对应sglang源码里`_gather_hidden_states`这个函数)。下面这段代码其实从attn-output转化为mlp_input更自然的版本
+```python
+attn_output = all_reduce(attn_output, attn_tp_group)
+residual = attn_output
+hidden_states = all_gather(attn_output, dp_group)
+```
+
+也就是说，目前sglang的实现用all_reduce(tp_group) + slice(attn_dp_rank)替换了all_reduce(attn_tp_group) + all_gather(dp_group)。这么做的点笔者认为是在一个batch里，不同的micro-batch的大小可能是不一样的(参考最上面的图)，如果是这样就没法用all_gather，因为all_gather要求所有input的大小是一致的。但是实际上这里的通信量是被放大了的。
+
+下面就是笔者个人的观点：只从通信量的角度来看，这部分代码是有优化空间的。额外的工作量是实现一个custom_all_gather来替换custom_all_reduce。但是在目前DeepEP出现的场景下，通信模式就不一样了，具体是否需要优化这部分代码还是要看模型的具体需求。
+
+### DeepEP
+
+![img](../../../../img/llm/dp_attention/DeepEP.PNG)
+
+- DecoderLayer的输入是micro-batch在attn-tp group里的一个Shard，AttentionLayer的输入完整的micro-batch，因此需要一个attn-tp group之间的all-gather通信
+
+- Attention层的输出是每个micro-batch Feature(但是feature不完整)，MLP层的输入是micro-batch Feature在attn-tp group里的一个Shard，因此在attn-tp group之间进行了reduce-scatter通信。对比上面，这里其实将attn-tp的all-reduce拆成了all-gather和reduce-scatter，本质上是输入/输出的要求变了
+
+- MLP层内部会有一个ep group的dispatch和combine，这里ep group就是tp group
+
+- MLP层输出则是micro-batch Feature在attn-tp group里的一个Shard，和DecoderLayer的输出一致，不需要通信
+
+sglang的伪代码如下
+```python
+def forward_deepep(hidden_states):
+    hidden_states, residual = layernorm(hidden_states), hidden_states
+    attn_input = all_gather(hidden_states, attn_tp_group)
+    attn_output = self_attn(attn_input) # (mbs, h) -> (mbs, h)
+    hidden_states = reduce_scatter(attn_output, attn_tp_group)
+    mlp_input, residual = layernorm(hidden_states, residual)
+    mlp_output = mlp(mlp_input) # (mbs//attn_tp, h) -> (mbs//attn_tp, h)
+    return mlp_output
+```
+
+### X-Mode in Sglang
+
+在Sglang的代码里，引入了`LayerScatterModes`对不同的切分状态做了不同的划分，并根据前后的状态将所有的通信都封装在`LayerCommunicator`这个类里。下面是我个人对各个变量的理解
+
+- `Scatter`的含义是，变量被切分成了`tp` 份，已经不能再切了
+
+- `TP_ATTN_FULL`的含义是，变量被切分成了`dp`份，还能按照`attn_tp`这个维度切分
+
+- `FULL`的含义是，变量没有被切分，还能按照`tp`这个维度切分
+
+下面来举一个例子，如果`input_mode == SCATTERED and output_mode == TP_ATTN_FULL`，那么就应该在attn_tp这个维度做一个all_gather；在`CommunicateSimpleFn.get_fn`里，可以看到`_scattered_to_tp_attn_full`这个函数确实是这个逻辑。
+
+## Size of Attn-TP
+
+现在已经初步介绍了DP-Attention，可是为什么dp-attention能带来性能提升呢？这个问题可以换一个问法，attn-tp的大小应该设置成多大呢？当attn-tp size等于tp size时，dp=1，相当于关闭了dp-attention；而与之对应的另一个极端是，dp=tp，相当于attention层完全不用tp。
+当控制变量的时候，应该控制 mbs * dp 不变，那么dp变大的一个好处就是，attn-input 的大小变小了，这就意味着kv-cache的大小变小了。这是dp-attention一个重要的优势。
+在DeepEP的setting下，设置dp=tp的另一个比较明显的好处是，可以避免all_gather和reduce_scatter。考虑到目前all_gather和reduce_scatter都是NCCL的实现，效率很低，可以估计dp=tp会有巨大的优势。
+
+在EPMoE和FusedMoE的setting。由于实现的原因，dp的大小并不会影响通信次数和通信量，那么此时就应当考虑并行策略对计算的影响了，切Input和切weight都可以减半计算量，但是不同的切法会导致tensor的shape不一致，进而影响计算效率。事实上，在Batch较小的场景下，矩阵乘法是访存密集型的，其耗时会被weight的大小主导，这个时候切weight的TP就会更高效，而DP-Attention在这个场景下是不占优势的。事实上，DP-Attention在通信函数里还引入了额外的开销(例如fill_(0)和memcpy)。
+
+如果使用`bench_one_batch`来进行实验，那么DP-Attention对于减少KVCache的优势就消失了，overhead会暴露出来。所以在EPMoE和FusedMoE场景下是否要使用DP-Attention还是要实测一下(当然真要追求极致性能还是得看DeepEP)。如果在H100环境下用下面这个测试命令测试QWen3-30B-A3B的吞吐，不开DP-Attention的吞吐(中位数)是4091，开了DP-Attention的吞吐(中位数)是3185。
+
+下面是实验代码，感兴趣(有机器)的小伙伴可以自行实验
+
+```shell
+python3 -m sglang.bench_one_batch --model Qwen/Qwen3-30B-A3B --batch 32 --input-len 256 --output-len 32 --tp 4
+python3 -m sglang.bench_one_batch --model Qwen/Qwen3-30B-A3B --batch 32 --input-len 256 --output-len 32 --tp 4 --dp 4 --enable-dp-attention 
+```
