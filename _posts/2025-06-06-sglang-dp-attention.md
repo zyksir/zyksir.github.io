@@ -11,7 +11,9 @@ tags: []
 ## Background
 
 在目前训练/推理的各个场景里，Attention层的并行策略和MoE层的并行策略是不一样的。这个已经逐渐成为了一种趋势，因为MoE层里有EP这个额外的并行策略考虑。目前Sglang的代码演进的很快，如果只看代码会发现可能过几天就变了；理解一些high level的概念之后再去看代码，会发现都是一脉相承，会更好的理解代码。
+
 本文重点看Sglang里`dp attention`这个概念，试图回答以下问题: 什么是 dp attention，为什么dp attention能带来性能提升，未来有什么演进的方向。欢迎大家多多交流。
+
 在正式介绍之前，引用SGLang v0.4 blog里的一张图，介绍一些代码里的一些参数以及与之对应的概念。
 
 ![img](../../../../img/llm/dp_attention/overview.PNG)
