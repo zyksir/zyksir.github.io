@@ -26,7 +26,7 @@ $$\mathcal{L}(\theta) = \left\| u_t^\theta(x) - u_t^{\text{target}}(x) \right\|^
 
 现在的问题是：$u_t^{\text{target}}(x)$ 长什么样？我们唯一已知的信息只有训练数据 $z \sim p_{data}$。接下来的推导会一步一步引入 assumption，逐渐缩小范围，最终得到一个可以计算的公式。
 
-**一个我之前的困惑:** 居然加噪声的过程（$x_t = \alpha_t z + \beta_t \epsilon$）我们完全知道，那为什么不直接让模型去预测噪声 $\epsilon$，搞一个 MSE 就完了？为什么推理又使用 $x_{t-h} = x_t - h \cdot u_t^\theta(x_t)$ 这也看起来和前向diffusion毫无关系的迭代公式。
+**一个我之前的困惑:** 居然加噪声的过程（$x\_t = \alpha\_t z + \beta\_t \epsilon$）我们完全知道，那为什么不直接让模型去预测噪声 $\epsilon$，搞一个 MSE 就完了？为什么推理又使用 $x\_{t-h} = x\_t - h \cdot u\_t^\theta(x\_t)$ 这也看起来和前向diffusion毫无关系的迭代公式。
 
 这里有一个很关键的点：**"怎么推导出 training loss function"和"怎么做 inference"，其实是解耦的**。把这两件事串联起来的桥梁，正是 ODE/SDE 的数学框架。Training 阶段，我们推导出 $u_t^{\text{target}}(x)$ 的公式；inference 阶段，我们可以自由选择用 Euler、Heun 或者其他任何数值方法来求解。Training target 的形式是由数学理论决定的，而不是由推理时的迭代方式反推出来的。
 
@@ -54,7 +54,7 @@ $$p_t(x) = \int p_t(x \mid z)\, p_{\text{data}}(z)\,\mathrm{d}z$$
 
 $$p_t(\cdot \mid z) = \mathcal{N}(\alpha_t z,\, \beta_t^2 I_d)$$
 
-从中采样就是 $x_t = \alpha_t z + \beta_t \epsilon$，其中 $\epsilon \sim \mathcal{N}(0, I_d)$。这里 $\alpha_t$ 和 $\beta_t$ 满足边界条件 $\alpha_0 = \beta_1 = 0$，$\alpha_1 = \beta_0 = 1$。这也正是 DDPM 中使用的 assumption。
+从中采样就是 $x\_t = \alpha\_t z + \beta\_t \epsilon$，其中 $\epsilon \sim \mathcal{N}(0, I_d)$。这里 $\alpha_t$ 和 $\beta_t$ 满足边界条件 $\alpha\_0 = \beta\_1 = 0$，$\alpha\_1 = \beta\_0 = 1$。这也正是 DDPM 中使用的 assumption。
 
 **Marginalization Trick**
 
@@ -68,19 +68,19 @@ $$u_t^{\text{target}}(x) = \int u_t^{\text{target}}(x \mid z)\, \frac{p_t(x \mid
 
 ### 条件向量场的显式公式
 
-对于 Flow Model（ODE）+ 高斯条件概率路径，令 $\dot{\alpha}_t = \partial_t \alpha_t$，$\dot{\beta}_t = \partial_t \beta_t$，可以证明：
+对于 Flow Model（ODE）+ 高斯条件概率路径，令 $\dot{\alpha}\_t = \partial\_t \alpha\_t$，$\dot{\beta}\_t = \partial\_t \beta\_t$，可以证明：
 
 $$u_t^{\text{target}}(x \mid z) = \left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\,\alpha_t\right) z + \frac{\dot{\beta}_t}{\beta_t}\, x$$
 
-（证明的起手式是"注意到" $\psi_t^{\text{target}}(x \mid z) = \alpha_t z + \beta_t x$ 恰好满足高斯条件概率路径的定义，然后代入 ODE 求导即可。这里的"注意到"倒不算反人类——$\alpha_t z + \beta_t x$ 本质上就是高斯分布的 reparameterization trick，是一个很自然的构造。）
+（证明的起手式是"注意到" $\psi\_t^{\text{target}}(x \mid z) = \alpha\_t z + \beta\_t x$ 恰好满足高斯条件概率路径的定义，然后代入 ODE 求导即可。这里的"注意到"倒不算反人类——$\alpha\_t z + \beta\_t x$ 本质上就是高斯分布的 reparameterization trick，是一个很自然的构造。）
 
 ### Diffusion Model 的 SDE 形式
 
-对于 Diffusion Model（SDE），如果 $X_0 \sim p_{\text{init}}$ 且具有如下形式：
+对于 Diffusion Model（SDE），如果 $X\_0 \sim p\_{\text{init}}$ 且具有如下形式：
 
 $$\mathrm{d}X_t = \left[u_t^{\text{target}}(X_t) + \frac{\sigma_t^2}{2}\,\nabla \log p_t(X_t)\right]\mathrm{d}t + \sigma_t\,\mathrm{d}W_t$$
 
-则 $X_t \sim p_t$，$0 \leq t \leq 1$。
+则 $X\_t \sim p\_t$，$0 \leq t \leq 1$。
 - 这里的 $u_t^{\text{target}}(x)$ 仍然可以用 $u_t^{\text{target}}(x \mid z)$ 来表示
 - 新出现的 **score function** $\nabla \log p_t(x)$ 同样可以从条件量推导得到：(证明略)
 
@@ -92,7 +92,7 @@ $$\nabla \log p_t(x \mid z) = -\frac{x - \alpha_t z}{\beta_t^2}$$
 
 **Langevin Dynamics：一个重要的特例**
 
-如果我们额外要求分布是静态的，即 $p_t = p$（不随时间变化），那么 $\partial_t p_t(x) = 0$，进一步可以得到 $u_t^{\text{target}} = 0$(这里有一个很复杂又不是很严谨的证明，总之我站在工程师的角度理解为怎么简单怎么来了，我们找到了一个最简单优雅的解就行)。SDE 简化为：
+如果我们额外要求分布是静态的，即 $p_t = p$（不随时间变化），那么 $\partial\_t p\_t(x) = 0$，进一步可以得到 $u_t^{\text{target}} = 0$(这里有一个很复杂又不是很严谨的证明，总之我站在工程师的角度理解为怎么简单怎么来了，我们找到了一个最简单优雅的解就行)。SDE 简化为：
 
 $$\mathrm{d}X_t = \frac{\sigma_t^2}{2}\,\nabla \log p(X_t)\,\mathrm{d}t + \sigma_t\,\mathrm{d}W_t$$
 
@@ -108,17 +108,17 @@ $$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, x \sim
 
 $$\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, z \sim p_{\text{data}},\, x \sim p_t(\cdot \mid z)} \left[\| u_t^\theta(x) - u_t^{\text{target}}(x \mid z) \|^2\right]$$
 
-关键结论是：$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathcal{L}_{\mathrm{CFM}}(\theta) + C$，其中 $C$ 是与 $\theta$ 无关的常数(证明略)。因此优化 $\mathcal{L}_{\mathrm{CFM}}$ 就等价于优化 $\mathcal{L}_{\mathrm{FM}}$。
+关键结论是：$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathcal{L}\_{\mathrm{CFM}}(\theta) + C$，其中 $C$ 是与 $\theta$ 无关的常数(证明略)。因此优化 $\mathcal{L}_{\mathrm{CFM}}$ 就等价于优化 $\mathcal{L}_{\mathrm{FM}}$。
 
 这就是 Flow Matching 的精髓：我们看起来在显式地对 tractable 的条件向量场做回归，其实是隐式地优化 intractable 的边缘向量场。根据 $\mathcal{L}_{\mathrm{CFM}}$ 训练 $u_t^\theta(x)$ 的整个过程，就被称为 **Flow Matching**。
 
 **高斯条件路径下的具体形式**
 
-将已知的 $u_t^{\text{target}}(x \mid z)$ 代入 $\mathcal{L}_{\mathrm{CFM}}$，并用 $x = \alpha_t z + \beta_t \epsilon$ 做变量替换：
+将已知的 $u_t^{\text{target}}(x \mid z)$ 代入 $\mathcal{L}_{\mathrm{CFM}}$，并用 $x = \alpha\_t z + \beta\_t \epsilon$ 做变量替换：
 
 $$\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, z \sim p_{\text{data}},\, \epsilon \sim \mathcal{N}(0, I_d)} \left[\| u_t^\theta(\alpha_t z + \beta_t \epsilon) - (\dot{\alpha}_t z + \dot{\beta}_t \epsilon) \|^2\right]$$
 
-这个公式已经完全可以计算了：采样一个数据点 $z$、一个时间 $t$、一个噪声 $\epsilon$，加噪得到 $x_t$，让模型预测向量场，和 target $(\dot{\alpha}_t z + \dot{\beta}_t \epsilon)$ 做 MSE——就是这么简单。
+这个公式已经完全可以计算了：采样一个数据点 $z$、一个时间 $t$、一个噪声 $\epsilon$，加噪得到 $x_t$，让模型预测向量场，和 target $(\dot{\alpha}\_t z + \dot{\beta}\_t \epsilon)$ 做 MSE——就是这么简单。
 
 如果进一步令 $\alpha_t = t$，$\beta_t = 1 - t$（即 CondOT probability path），则 $\dot{\alpha}_t = 1$，$\dot{\beta}_t = -1$，公式化简为：
 
@@ -134,11 +134,11 @@ $$\mathcal{L}_{\mathrm{SM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, z \sim
 
 $$\mathcal{L}_{\mathrm{CSM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, z \sim p_{\text{data}},\, x \sim p_t(\cdot \mid z)} \left[\| s_t^\theta(x) - \nabla \log p_t(x \mid z) \|^2\right]$$
 
-同样可以证明 $\mathcal{L}_{\mathrm{SM}}(\theta) = \mathcal{L}_{\mathrm{CSM}}(\theta) + C$。
+同样可以证明 $\mathcal{L}\_{\mathrm{SM}}(\theta) = \mathcal{L}\_{\mathrm{CSM}}(\theta) + C$。
 
 ### DDPM Loss：Denoising Score Matching
 
-对于高斯条件概率路径，将 $\nabla \log p_t(x \mid z) = -\frac{x - \alpha_t z}{\beta_t^2}$ 代入，并做一个重参数化 $-\beta_t s_t^\theta(x) = \epsilon_t^\theta(x)$（即把 score network 转化为 **noise predictor**），loss 变成：
+对于高斯条件概率路径，将 $\nabla \log p\_t(x \mid z) = -\frac{x - \alpha\_t z}{\beta\_t^2}$ 代入，并做一个重参数化 $-\beta\_t s\_t^\theta(x) = \epsilon\_t^\theta(x)$（即把 score network 转化为 **noise predictor**），loss 变成：
 
 $$\mathcal{L}_{\mathrm{DDPM}}(\theta) = \mathbb{E}_{t \sim \mathrm{Unif},\, z \sim p_{\text{data}},\, \epsilon \sim \mathcal{N}(0, I_d)} \left[\| \epsilon_t^\theta(\alpha_t z + \beta_t \epsilon) - \epsilon \|^2\right]$$
 
@@ -162,17 +162,17 @@ $$X_0 \sim p_{\text{init}}, \quad \mathrm{d}X_t = \left[\left(\beta_t^2 \frac{\d
 
 前面我们从 flow matching 和 score matching 的角度推导出了 $\mathcal{L}_{\mathrm{DDPM}}$。但DDPM（[Ho et al., 2020](https://arxiv.org/abs/2006.11239)）论文本身并不是这样推导的。它走的是一条完全不同的路，通过离散时间的马尔可夫链 + ELBO得到了同样的结论。MIT 6.S184 讲义的 Section 4.3 也提到，这两种推导方式在连续时间极限下是等价的。这里简要记录 DDPM 原始视角下的推导结论，详细推导可参考[《深入浅出扩散模型系列：基石 DDPM》](https://zhuanlan.zhihu.com/p/650394311)。
 
-**前向扩散过程（Forward / Diffusion Process）。** 给定原始数据 $x_0 \sim p_{\text{data}}$，DDPM 分 $T$ 步逐渐混入高斯噪声，得到一条离散序列 $x_0, x_1, \ldots, x_T$。每一步的转移分布为：
+**前向扩散过程（Forward / Diffusion Process）。** 给定原始数据 $x\_0 \sim p\_{\text{data}}$，DDPM 分 $T$ 步逐渐混入高斯噪声，得到一条离散序列 $x\_0, x\_1, \ldots, x\_T$。每一步的转移分布为：
 
 $$q(x_t \mid x_{t-1}) = \mathcal{N}\left(\sqrt{1 - \beta_t}\, x_{t-1},\; \beta_t I\right)$$
 
-即 $x_t = \sqrt{1 - \beta_t}\, x_{t-1} + \sqrt{\beta_t}\, \epsilon_t$，$\epsilon_t \sim \mathcal{N}(0, I)$。当 $T$ 足够大时，$x_T$ 趋于标准正态分布。
+即 $x\_t = \sqrt{1 - \beta\_t}\, x\_{t-1} + \sqrt{\beta\_t}\, \epsilon\_t$，$\epsilon_t \sim \mathcal{N}(0, I)$。当 $T$ 足够大时，$x_T$ 趋于标准正态分布。
 
 利用高斯分布的可加性（closure property），可以直接将 $x_t$ 表示为 $x_0$ 的函数，跳过所有中间步：
 
 $$x_t = \sqrt{\bar{\alpha}_t}\, x_0 + \sqrt{1 - \bar{\alpha}_t}\, \bar{\epsilon}_t, \quad \bar{\epsilon}_t \sim \mathcal{N}(0, I), \quad \bar{\alpha}_t = \prod_{i=1}^t (1 - \beta_i)$$
 
-这个"一步到位"的公式在训练时极为重要——不需要真的跑 $t$ 步前向过程，直接用 reparameterization trick 从 $x_0$ 采样到任意时刻 $x_t$。对比前面连续时间框架下的 $x_t = \alpha_t z + \beta_t \epsilon$，可以看到两者的形式完全一致（只是离散 vs. 连续的记号差异）。
+这个"一步到位"的公式在训练时极为重要——不需要真的跑 $t$ 步前向过程，直接用 reparameterization trick 从 $x_0$ 采样到任意时刻 $x_t$。对比前面连续时间框架下的 $x\_t = \alpha\_t z + \beta\_t \epsilon$，可以看到两者的形式完全一致（只是离散 vs. 连续的记号差异）。
 
 **反向去噪过程（Reverse / Denoise Process）** 利用贝叶斯公式，后验分布可以写成：
 
@@ -186,7 +186,7 @@ $$\mu_t = \frac{1}{\sqrt{1-\beta_t}}\left(x_t - \frac{\beta_t}{\sqrt{1 - \bar{\a
 
 $$x_{t-1} = \frac{1}{\sqrt{1-\beta_t}}\left(x_t - \frac{\beta_t}{\sqrt{1 - \bar{\alpha}_t}}\, \boldsymbol{\epsilon}_\theta(x_t, t)\right) + \sigma_t \mathbf{z}, \quad \mathbf{z} \sim \mathcal{N}(0, I)$$
 
-其中 $\boldsymbol{\epsilon}_\theta(x_t, t)$ 就是神经网络预测的噪声，$\sigma_t$ 是一个预设的方差系数。这个公式对应了[DDPM Scheduler](https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L539C57-L539C77)
+其中 $\boldsymbol{\epsilon}\_\theta(x\_t, t)$ 就是神经网络预测的噪声，$\sigma_t$ 是一个预设的方差系数。这个公式对应了[DDPM Scheduler](https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_ddpm.py#L539C57-L539C77)
 
 **优化目标。** DDPM 的出发点是最大化数据的对数似然：
 
@@ -198,4 +198,4 @@ $$\min_\theta \; \sum_{t=1}^T \lambda(t)\, \mathbb{E}_{x_0 \sim p_{\text{data}},
 
 其中 $\lambda(t)$ 是每个时间步的权重系数。DDPM 论文中实验发现直接令 $\lambda(t) = 1$（即忽略理论推导中的权重）效果最好。
 
-**和连续时间框架的联系。** 对比前面推导的 $\mathcal{L}_{\mathrm{DDPM}}(\theta) = \mathbb{E}_{t, z, \epsilon}\left[\|\epsilon_t^\theta(\alpha_t z + \beta_t \epsilon) - \epsilon\|^2\right]$，两者本质上是同一个东西——前者是离散时间的求和，后者是连续时间的期望；前者通过 ELBO 推导，后者通过 score matching 推导。正如讲义 Section 4.3 所述，离散版本可以看作连续 SDE 的近似，而在连续极限下 ELBO 变成等式而非下界，数学上更加"干净"。殊途同归。
+**和连续时间框架的联系。** 对比前面推导的 $\mathcal{L}\_{\mathrm{DDPM}}(\theta) = \mathbb{E}\_{t, z, \epsilon}\left[\|\epsilon\_t^\theta(\alpha\_t z + \beta\_t \epsilon) - \epsilon\|^2\right]$，两者本质上是同一个东西——前者是离散时间的求和，后者是连续时间的期望；前者通过 ELBO 推导，后者通过 score matching 推导。正如讲义 Section 4.3 所述，离散版本可以看作连续 SDE 的近似，而在连续极限下 ELBO 变成等式而非下界，数学上更加"干净"。殊途同归。

@@ -28,19 +28,19 @@ tags: ["diffusion"]
 
 需要特别说明的是，**不同论文和课程对 $x_0$ 的定义是不同的**。在 MIT 6.S184 中：
 
-- $X_0 \sim p_{\text{init}}$ 代表**噪声**（起点），$X_1 \sim p_{\text{data}}$ 代表**数据**（终点）
+- $X\_0 \sim p\_{\text{init}}$ 代表**噪声**（起点），$X\_1 \sim p\_{\text{data}}$ 代表**数据**（终点）
 - 时间从 $t=0$（纯噪声）流向 $t=1$（干净数据）
 
 但在很多早期论文（如 DDPM）以及实际代码中，符号定义恰好相反：变量 `x_0` 代表 denoise 之后的"干净"结果。**本文采用后者**，因为这与我阅读的大部分代码一致：
 
-- $(x_t)_{0 \leq t \leq 1}$ 代表某个样本在变化过程中的轨迹
-- $x_0 \sim p_{data}$ 代表**终点**，满足未知的数据分布，含义为图像/视频数据
-- $z = x_1 \sim p_{init}$ 代表**起点**，满足已知的初始分布（通常是标准高斯分布 $\mathcal{N}(0, I)$），含义为纯噪声
+- $(x\_t)\_{0 \leq t \leq 1}$ 代表某个样本在变化过程中的轨迹
+- $x\_0 \sim p\_{data}$ 代表**终点**，满足未知的数据分布，含义为图像/视频数据
+- $z = x\_1 \sim p\_{init}$ 代表**起点**，满足已知的初始分布（通常是标准高斯分布 $\mathcal{N}(0, I)$），含义为纯噪声
 - $z \sim p_{data}(\cdot \mid y)$ 代表条件生成（Conditional Generation），其中 $y$ 为 prompt 等条件信息
 
 ### 前向 Diffusion 过程
 
-理解了上面的符号之后，"前向 diffusion"就很直观了：给定一张图片或一段视频（即 $x_0 \sim p_{data}$），通过逐步往里面添加噪声，将数据分布 $p_{data}$ 逐渐转变为简单的初始分布 $p_{init}$。在苏剑林老师的[这篇博客](https://spaces.ac.cn/archives/9119)中提到过，代码里常见的 `num_train_timesteps=1000` 是因为：经过 1000 步加噪之后，结果在 $e^{-5}$ 的误差范围内就和纯噪声没有区别了。
+理解了上面的符号之后，"前向 diffusion"就很直观了：给定一张图片或一段视频（即 $x\_0 \sim p\_{data}$），通过逐步往里面添加噪声，将数据分布 $p_{data}$ 逐渐转变为简单的初始分布 $p_{init}$。在苏剑林老师的[这篇博客](https://spaces.ac.cn/archives/9119)中提到过，代码里常见的 `num_train_timesteps=1000` 是因为：经过 1000 步加噪之后，结果在 $e^{-5}$ 的误差范围内就和纯噪声没有区别了。
 
 而 Diffusion 模型需要学习的是这个过程的**逆过程**：从已知的初始分布 $p_{init}$ 出发，逐步变换到数据分布 $p_{data}$。每一个随机噪声点不断演化、最终变成图像/视频的过程，就是一条**轨迹（trajectory）**。不同的模型对这条轨迹有不同的数学建模方式，下面分别介绍。
 
@@ -56,7 +56,7 @@ $$\frac{\mathrm{d}x_t}{\mathrm{d}t} = u_t^\theta(x_t)$$
 
 **关于解的存在与唯一性** 只要向量场 $u$ 连续可微且导数有界，ODE 就有唯一解。在实践中，我们用神经网络来参数化 $u_t^\theta(x)$，而神经网络天然可导且导数有界，所以这个条件几乎总是满足的。这是个好消息——意味着理论解总是存在且唯一的，就看模型能拟合的多好了。
 
-**关于显式求解** 假设存在一个万能的求解器，能够直接计算出 ODE 对应的 flow $\psi(x_1, t)$，那么轨迹上任意一点都可以通过 $x_t = \psi(x_1, t)$ 直接得到。对于生成任务，我们真正关心的只是终点 $x_0 = \psi(x_1, 0)$——最终生成的图片或视频。如果能显式求解，就可以一步到位。讲义中给了一个可以显式求解的例子：对于线性向量场 $u_t(x) = -\theta x$（$\theta > 0$），其解为 $\psi_t(x_0) = \exp(-\theta t) \, x_0$，所有点会指数衰减地收敛到原点。
+**关于显式求解** 假设存在一个万能的求解器，能够直接计算出 ODE 对应的 flow $\psi(x_1, t)$，那么轨迹上任意一点都可以通过 $x\_t = \psi(x\_1, t)$ 直接得到。对于生成任务，我们真正关心的只是终点 $x\_0 = \psi(x\_1, 0)$——最终生成的图片或视频。如果能显式求解，就可以一步到位。讲义中给了一个可以显式求解的例子：对于线性向量场 $u_t(x) = -\theta x$（$\theta > 0$），其解为 $\psi\_t(x\_0) = \exp(-\theta t) \, x\_0$，所有点会指数衰减地收敛到原点。
 
 **关于数值近似求解** 然而绝大多数情况下，ODE 的解无法显式写出，只能通过数值方法来近似求解。最简单也最直观的是 **Euler Method**：
 
@@ -75,9 +75,9 @@ $$\mathrm{d}x_t = u_t(x_t)\,\mathrm{d}t + \sigma_t\,\mathrm{d}W_t$$
 这里额外引入的 $W_t$ 是一个**布朗运动（Brownian Motion）**，也叫 Wiener 过程。可以把它理解成一个"连续版的随机游走"，具有以下性质：
 
 1. $W_0 = 0$
-2. 增量服从高斯分布：$W_t - W_s \sim \mathcal{N}(0,(t-s) I_d)$，$\forall \, 0 \leq s < t$
-3. 不同时间段的增量彼此独立：$\forall \, 0 \leq t_0 < t_1 < \cdots < t_n = 1$，$W_{t_1} - W_{t_0}, \ldots, W_{t_n} - W_{t_{n-1}}$ 相互独立
-4. 可以通过 $W_{t+h} = W_t + \sqrt{h}\,\epsilon_t$，$\epsilon_t \sim \mathcal{N}(0, I_d)$ 来离散模拟
+2. 增量服从高斯分布：$W\_t - W\_s \sim \mathcal{N}(0,(t-s) I\_d)$，$\forall \, 0 \leq s < t$
+3. 不同时间段的增量彼此独立：$\forall \, 0 \leq t\_0 < t\_1 < \cdots < t\_n = 1$，$W\_{t\_1} - W\_{t\_0}, \ldots, W\_{t\_n} - W\_{t\_{n-1}}$ 相互独立
+4. 可以通过 $W\_{t+h} = W\_t + \sqrt{h}\,\epsilon\_t$，$\epsilon\_t \sim \mathcal{N}(0, I\_d)$ 来离散模拟
 
 **关于扩散系数 $\sigma_t$ 的直观** 讲义中用 Ornstein-Uhlenbeck（OU）过程的例子做了很好的可视化：当 $u_t(x) = -\theta x$ 且 $\sigma_t = \sigma$ 为常量时，$\sigma = 0$ 对应的就是之前的确定性 flow，所有轨迹光滑地收敛到原点；随着 $\sigma$ 增大，轨迹变得越来越"混乱"，但最终会收敛到高斯分布 $\mathcal{N}(0, \frac{\sigma^2}{2\theta})$。
 
@@ -91,7 +91,7 @@ $$X_{t+h} = X_t + h\,u_t(X_t) + \sqrt{h}\,\sigma_t\,\epsilon_t, \quad \epsilon_t
 
 $$\mathrm{d}x_t = u_t^{\theta}(x_t)\,\mathrm{d}t + \sigma_t\,\mathrm{d}W_t$$
 
-训练完成后，通过 Euler-Maruyama Method 从 $X_0 \sim p_{init}$ 出发模拟 SDE，最终得到 $X_1 \sim p_{data}$。值得注意的是，当 $\sigma_t = 0$ 时，SDE 退化为 ODE，Diffusion Model 就变成了 Flow Model——所以 **Flow Model 是 Diffusion Model 的特例**。
+训练完成后，通过 Euler-Maruyama Method 从 $X\_0 \sim p\_{init}$ 出发模拟 SDE，最终得到 $X\_1 \sim p\_{data}$。值得注意的是，当 $\sigma_t = 0$ 时，SDE 退化为 ODE，Diffusion Model 就变成了 Flow Model——所以 **Flow Model 是 Diffusion Model 的特例**。
 
 ### Euler 求解的实际效果
 
