@@ -2,15 +2,13 @@
 layout: default
 title: 404
 hide-in-nav: true
-description: "你来到了没有知识的荒原 :("
-header-img: "img/background/404-bg.jpg"
+description: "Page not found."
 permalink: /404.html
 ---
 
-
-<!-- Page Header -->
-{% include intro-header.html type="page" short='true' %}
-
-<script>
-	document.body.classList.add('page-fullscreen');
-</script>
+<div class="wrapper page-content" style="text-align:center; padding-top:60px;">
+  <h1 style="font-size:4rem; margin-bottom:0.5rem;">404</h1>
+  <p class="lang-zh">你来到了没有知识的荒原 :( 这个页面不存在。</p>
+  <p class="lang-en">You've wandered into the void :( This page doesn't exist.</p>
+  <p><a href="{{ '/' | relative_url }}">&larr; <span class="lang-zh">返回首页</span><span class="lang-en">Back home</span></a></p>
+</div>

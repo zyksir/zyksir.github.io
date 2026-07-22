@@ -1,0 +1,52 @@
+/*******************************************************************************
+ * CV page styles.
+ ******************************************************************************/
+
+.cv {
+  max-width: $max-content-width;
+
+  .cv-header {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    h1 { margin: 0; font-size: 2rem; }
+    .cv-download a {
+      font-size: 0.9rem;
+      border: 1px solid var(--global-divider-color);
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+  }
+
+  .cv-section { margin-bottom: 2.2rem; }
+  .cv-section > h2 {
+    font-size: 1.25rem;
+    border-bottom: 1px solid var(--global-divider-color);
+    padding-bottom: 0.35rem;
+    margin-bottom: 1rem;
+  }
+
+  .cv-entry {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    .cv-date { color: var(--global-text-color-light); font-size: 0.9rem; }
+    .cv-body { }
+    .cv-body h3 { margin: 0 0 0.15rem; font-size: 1.05rem; }
+    .cv-body .cv-place { color: var(--global-text-color-light); font-size: 0.92rem; margin: 0 0 0.35rem; }
+    .cv-body ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+    .cv-body p { margin: 0.3rem 0 0; }
+  }
+
+  .cv-skills { list-style: none; padding: 0; margin: 0; }
+  .cv-skills li { padding: 0.35rem 0; }
+  .cv-skills .skill-label { font-weight: 600; margin-right: 0.5rem; }
+}
+
+@media (max-width: 640px) {
+  .cv .cv-entry { grid-template-columns: 1fr; gap: 0.15rem; }
+}

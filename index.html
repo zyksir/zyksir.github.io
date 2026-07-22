@@ -1,46 +1,94 @@
 ---
-layout: page
-description: "不积跬步，无以至千里。不积小流，无以成大海。"
+layout: default
+title: null
+description: "Yikai Zhu's blog on machine learning systems, GPU kernels, and generative AI."
 ---
 
-{% for post in paginator.posts %}
-<div class="post-preview">
-    <a href="{{ post.url | prepend: site.baseurl }}">
-        <h2 class="post-title">
-            {{ post.title }}
-        </h2>
-        {% if post.subtitle %}
-        <h3 class="post-subtitle">
-            {{ post.subtitle }}
-        </h3>
-        {% endif %}
-        <div class="post-content-preview">
-            {% if post.lang == 'en' %}
-                {{ post.content | strip_html | truncate:300 }}
-            {% else %}
-                {{ post.content | strip_html | truncate:200 }}
-            {% endif %}
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by {% if post.author %}{{ post.author }}{% else %}{{ site.title }}{% endif %} on {{ post.date | date: "%B %-d, %Y" }}
+<section class="hero" style="background-image: url('{{ '/img/background/walle-bg.jpg' | relative_url }}');">
+  <div class="hero-inner">
+    <h1>Yikai Zhu's Blog</h1>
+    <p>
+      <span class="lang-zh">仰望星空，脚踏实地。</span>
+      <span class="lang-en">Looking up at the stars, with feet on the ground.</span>
     </p>
-</div>
-<hr>
-{% endfor %}
+  </div>
+</section>
 
-<!-- Pager -->
-{% if paginator.total_pages > 1 %}
-<ul class="pager">
-    {% if paginator.previous_page %}
-    <li class="previous">
-        <a href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr; Newer Posts</a>
-    </li>
-    {% endif %}
-    {% if paginator.next_page %}
-    <li class="next">
-        <a href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older Posts &rarr;</a>
-    </li>
-    {% endif %}
-</ul>
-{% endif %}
+<div class="wrapper">
+
+  <section class="profile">
+    <img src="https://github.com/zyksir.png" alt="Yikai Zhu">
+    <div class="profile-text">
+      <h1>Yikai Zhu</h1>
+      <p class="tagline">
+        <span class="lang-zh">机器学习系统 · GPU Kernel · 生成式 AI</span>
+        <span class="lang-en">Machine Learning Systems · GPU Kernels · Generative AI</span>
+      </p>
+      <ul class="contact-links">
+        <li><i class="fa-solid fa-envelope fa-fw"></i> <a href="mailto:{{ site.email }}">{{ site.email }}</a></li>
+        <li><i class="fa-brands fa-github fa-fw"></i> <a href="https://github.com/{{ site.github_username }}" target="_blank" rel="noopener">github.com/{{ site.github_username }}</a></li>
+        <li><i class="fa-brands fa-linkedin fa-fw"></i> <a href="https://www.linkedin.com/in/{{ site.linkedin_username }}" target="_blank" rel="noopener">linkedin.com/in/{{ site.linkedin_username }}</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="intro">
+    <p class="lang-zh">
+      欢迎来到 Yikai Zhu 的博客。我主要写机器学习系统、GPU / Triton kernel、推理框架与生成式模型相关的技术笔记。
+      这里的文章大多提供中文和英文两个版本，点击右上角的按钮即可切换语言。
+    </p>
+    <p class="lang-en">
+      Welcome to Yikai Zhu's blog. I write technical notes on machine learning systems, GPU / Triton kernels,
+      inference frameworks, and generative models. Most posts are available in both Chinese and English &mdash;
+      use the toggle in the top-right corner to switch languages.
+    </p>
+  </section>
+
+  <div class="publications">
+    <h2 class="section-title">
+      <span class="lang-zh">论文</span><span class="lang-en">Publications</span>
+    </h2>
+    <ol class="pub-list">
+      <li>
+        <div class="pub-title">SpecForge: A Flexible and Efficient Open-Source Training Framework for Speculative Decoding</div>
+        <div class="pub-authors">S. Li, C. Wang, <b>Y. Zhu</b>, Y. Wang, F. Yin, S. Shi, Y. Chen, X. Dong, Q. Chen, et al.</div>
+        <div class="pub-venue"><em>ICML 2026</em></div>
+        <div class="pub-links">
+          <a href="https://github.com/sgl-project/SpecForge" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i> Code</a>
+          <span class="pub-role"><span class="lang-zh">维护者</span><span class="lang-en">Maintainer</span></span>
+        </div>
+      </li>
+      <li>
+        <div class="pub-title">SimAI: Unifying Architecture Design and Performance Tuning for Large-Scale Large Language Model Training with Scalability and Precision</div>
+        <div class="pub-authors">X. Wang, Q. Li, Y. Xu, G. Lu, D. Li, L. Chen, H. Zhou, L. Zheng, S. Zhang, <b>Y. Zhu</b>, et al.</div>
+        <div class="pub-venue"><em>USENIX NSDI 2025</em></div>
+      </li>
+      <li>
+        <div class="pub-title">Evolution of Aegis: Fault Diagnosis for AI Model Training Service in Production</div>
+        <div class="pub-authors">J. Dong, K. Qian, P. Zhang, Z. Zheng, L. Chen, F. Feng, Y. Xu, <b>Y. Zhu</b>, G. Lu, et al.</div>
+        <div class="pub-venue"><em>USENIX NSDI 2025</em></div>
+      </li>
+      <li>
+        <div class="pub-title">The Measure of All Measures: Quantifying LLM Benchmark Quality</div>
+        <div class="pub-authors">J. Yao, P. Jin, K. Bao, Q. Yu, K. Bhardwaj, C. Su, J. Wang, <b>Y. Zhu</b>, S. Devare, et al.</div>
+        <div class="pub-venue"><em>NeurIPS 2025 Workshop</em></div>
+      </li>
+      <li>
+        <div class="pub-title">Boosting Large-Scale Parallel Training Efficiency with C4: A Communication-Driven Approach</div>
+        <div class="pub-authors">J. Dong, B. Luo, J. Zhang, P. Zhang, F. Feng, <b>Y. Zhu</b>, A. Liu, Z. Chen, Y. Shi, et al.</div>
+        <div class="pub-venue"><em>IEEE HPCA 2025</em></div>
+      </li>
+      <li>
+        <div class="pub-title">Learning to Answer Ambiguous Questions with Knowledge Graph</div>
+        <div class="pub-authors"><b>Y. Zhu</b>, J. Shen, M. Zhang</div>
+        <div class="pub-venue"><em>arXiv:1912.11668</em></div>
+        <div class="pub-links"><a href="https://arxiv.org/abs/1912.11668" target="_blank" rel="noopener">arXiv</a></div>
+      </li>
+      <li>
+        <div class="pub-title">NoiGAN: Noise Aware Knowledge Graph Embedding with GAN</div>
+        <div class="pub-authors">K. Cheng, <b>Y. Zhu</b>, M. Zhang, Y. Sun</div>
+      </li>
+    </ol>
+  </div>
+
+</div>

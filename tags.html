@@ -1,0 +1,89 @@
+---
+title: Tags
+layout: default
+description: "Filter posts by tag."
+permalink: /tags/
+---
+
+<div class="wrapper">
+  <h1 class="page-title">
+    <span class="lang-zh">标签</span><span class="lang-en">Tags</span>
+  </h1>
+
+  <p class="tag-hint-text">
+    <span class="lang-zh">点击标签进行筛选，可多选；再次点击取消选择。</span>
+    <span class="lang-en">Click tags to filter (multi-select); click again to deselect.</span>
+  </p>
+
+  {%- assign tags = site.tags | sort -%}
+  <div class="tag-cloud" id="tag-cloud">
+    {% for tag in tags %}
+    <button type="button" class="tag tag-filter" data-tag="{{ tag[0] | slugify }}">{{ tag[0] }} <sup>{{ tag[1].size }}</sup></button>
+    {% endfor %}
+  </div>
+
+  <p class="tag-empty" id="tag-empty">
+    <span class="lang-zh">请选择一个或多个标签以显示相关文章。</span>
+    <span class="lang-en">Select one or more tags to show matching posts.</span>
+  </p>
+
+  <ul class="post-list" id="tag-results">
+    {% for post in site.posts %}
+    {% if post.tags.size > 0 %}
+    <li class="tag-item" data-tags="{% for t in post.tags %}{{ t | slugify }} {% endfor %}" hidden>
+      <h3 class="post-title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+      {% if post.description %}<p class="post-desc">{{ post.description }}</p>{% endif %}
+      <div class="post-meta">
+        <span>{{ post.date | date: "%B %-d, %Y" }}</span>
+        <span class="post-tags">{% for tag in post.tags %}<span class="tag" data-tag="{{ tag | slugify }}">{{ tag }}</span>{% endfor %}</span>
+      </div>
+    </li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+
+<script>
+  (function () {
+    var selected = new Set();
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tag-filter'));
+    var items = Array.prototype.slice.call(document.querySelectorAll('#tag-results .tag-item'));
+    var empty = document.getElementById('tag-empty');
+
+    function render() {
+      // Highlight selected buttons.
+      buttons.forEach(function (b) {
+        b.classList.toggle('selected', selected.has(b.dataset.tag));
+      });
+      // Nothing selected -> show the hint, hide every post.
+      if (selected.size === 0) {
+        items.forEach(function (li) { li.hidden = true; });
+        if (empty) empty.hidden = false;
+        return;
+      }
+      if (empty) empty.hidden = true;
+      // Show a post if it has ANY of the selected tags (union).
+      items.forEach(function (li) {
+        var tags = li.dataset.tags.split(/\s+/);
+        var match = tags.some(function (t) { return selected.has(t); });
+        li.hidden = !match;
+      });
+    }
+
+    function toggle(tag) {
+      if (selected.has(tag)) selected.delete(tag); else selected.add(tag);
+      render();
+    }
+
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { toggle(b.dataset.tag); });
+    });
+
+    // Pre-select a tag from the URL hash (e.g. /tags/#ai-infra from a post's tag chip).
+    var hash = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    if (hash && buttons.some(function (b) { return b.dataset.tag === hash; })) {
+      selected.add(hash);
+    }
+    render();
+  })();
+</script>

@@ -1,12 +1,15 @@
 # Site settings
-title: Yikai Zhu Blog
-SEOTitle: 朱熠恺的博客 |  Yikai Zhu Blog
+title: Yikai Zhu's Blog
+SEOTitle: Yikai Zhu's Blog
 header-img: img/background/walle-bg.jpg
 email: zhuyikai.zyk@gmail.com
-description: "这是朱熠恺的个人博客"
-keyword: "朱熠恺，朱熠恺的博客, Yikai Zhu, Machine Learning, Architecture Engineer"
+description: "Yikai Zhu's blog on machine learning systems, GPU kernels, and generative AI."
+keyword: "Yikai Zhu, Machine Learning Systems, GPU, Triton, CUDA, Generative AI, Diffusion"
 url: "https://zyksir.github.io" # [github-username].github.io
 baseurl: "" # please leave it empty here
+
+# Width of the centered content column (al-folio distill style).
+max_width: 820px
 
 # Publish posts or collection documents with a future date.
 future: true
@@ -24,7 +27,6 @@ linkedin_username:  zyksir
 # from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
 highlighter: rouge
 permalink: pretty
-paginate: 10
 exclude:
   [
     "less",
@@ -42,7 +44,16 @@ anchorjs: true # if you want to customize anchor. check out line:181 of `post.ht
 # from PR#40, to support local preview for Jekyll 3.0
 # make sure you have this gem installed
 # `$ gem install jekyll-paginate`
-plugins: [jekyll-paginate]
+plugins: []
+
+# The distill layout shows a left-margin table of contents, built client-side
+# from the visible headings. Set `toc: false` in a post's front matter to hide it.
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
 
 # Markdown settings
 # replace redcarpet to kramdown,
@@ -55,11 +66,11 @@ kramdown:
     span:
       line_numbers: false
     block:
-      line_numbers: true
+      line_numbers: false
       start_line: 1
 
 # Comment settings
-utterances_enable: true
+utterances_enable: false
 disqus_enable: false
 
 # Netease settings

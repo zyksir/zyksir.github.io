@@ -1,0 +1,236 @@
+/*******************************************************************************
+ * Style overrides for distill blog posts.
+ ******************************************************************************/
+
+d-byline {
+  border-top-color: var(--global-divider-color) !important;
+}
+
+d-byline h3 {
+  color: var(--global-text-color) !important;
+}
+
+d-byline a, d-article d-byline a {
+  color: var(--global-text-color) !important;
+  &:hover {
+    color: var(--global-hover-color) !important;
+  }
+}
+
+d-article {
+  border-top-color: var(--global-divider-color) !important;
+  p, h1, h2, h3, h4, h5, h6, li, table {
+    color: var(--global-text-color) !important;
+  }
+  h1, h2, hr, table, table th, table td {
+    border-bottom-color: var(--global-divider-color) !important;
+  }
+  a {
+    color: var(--global-theme-color) !important;
+    &:hover {
+      color: var(--global-theme-color) !important;
+    }
+  }
+  b i {
+    display: inline;
+  }
+
+  // Style taken from code blocks
+  details {  
+    color: var(--global-text-color);
+    background-color: var(--global-code-bg-color);
+    margin-top: 0;
+    padding: 8px 12px;
+    position: relative;
+    border-radius: 6px;
+    display: block;
+    margin-bottom: 20px;
+    grid-column: text;
+    overflow: auto;
+    max-width: 100%;
+    summary {
+      color: var(--global-theme-color);
+    }
+    p {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+  }
+
+  d-contents {
+    align-self: start;
+    grid-column: 1 / 4;
+    grid-row: auto / span 4;
+    justify-self: end;
+    margin-top: 0em;
+    padding-left: 2em;
+    padding-right: 3em;
+    border-right: 1px solid var(--global-divider-color);
+    width: calc(max(70%, 300px));
+    margin-right: 0px;
+    margin-top:  0em;
+    display: grid;
+    grid-template-columns:
+      minmax(8px, 1fr) [toc] auto
+      minmax(8px, 1fr) [toc-line] 1px
+      minmax(32px, 2fr);
+
+    nav {
+      grid-column: toc;
+      a {
+        border-bottom: none !important;
+        &:hover {
+          border-bottom: 1px solid var(--global-text-color) !important;
+        }
+      }
+      h3 {
+        margin-top: 0;
+        margin-bottom: 1em;
+      }
+      div {
+        display: block;
+        outline: none;
+        margin-bottom: 0.8em;
+        color: rgba(0, 0, 0, 0.8);
+        font-weight: bold;
+      }
+      ul {
+        padding-left: 1em;
+        margin-top: 0;
+        margin-bottom: 6px;
+        list-style-type: none;
+        li {
+          margin-bottom: 0.25em;
+        }
+      }
+    }
+    .figcaption {
+      line-height: 1.4em;
+    }
+    toc-line {
+      border-right: 1px solid var(--global-divider-color);
+      grid-column: toc-line;
+    }
+  }
+
+  d-footnote {
+    scroll-margin-top: 66px;
+  }
+}
+
+d-appendix {
+  border-top-color: var(--global-divider-color) !important;
+  color: var(--global-distill-app-color) !important;
+  h3, li, span {
+    color: var(--global-distill-app-color) !important;
+  }
+  a, a.footnote-backlink {
+    color: var(--global-distill-app-color) !important;
+    &:hover {
+      color: var(--global-hover-color) !important;
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  d-article {
+    d-contents {
+      display: block;
+      grid-column-start: 2;
+      grid-column-end: -2;
+      padding-bottom: 0.5em;
+      margin-bottom: 1em;
+      padding-top: 0.5em;
+      width: 100%;
+      border: 1px solid var(--global-divider-color);
+      nav {
+        grid-column: none;
+      }
+    }
+  }
+}
+
+/*******************************************************************************
+ * Local overrides (added on top of the ported al-folio distill styles).
+ ******************************************************************************/
+
+/* Keep the left-margin table of contents pinned while scrolling.
+ * distill sets `overflow-y: auto` on d-article, which makes it the scroll
+ * container and breaks position:sticky — force it back to visible so the TOC
+ * sticks to the viewport instead. */
+d-article { overflow: visible !important; }
+
+@media (min-width: 1025px) {
+  d-article d-contents {
+    position: sticky;
+    top: 70px;
+    align-self: start;
+    grid-row: 1 / -1;       /* span the whole article so sticky holds while scrolling */
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+}
+
+/* Right-margin sidenotes. Add one in a post right after the paragraph it
+ * annotates:  <aside markdown="1">Your side note here.</aside>
+ * On wide screens it floats into the empty right margin; on narrow screens it
+ * falls back to an inline, indented note. Works even inside the bilingual
+ * .lang-zh / .lang-en wrappers (float doesn't need to be a grid child). */
+d-article aside {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--global-text-color-light);
+}
+@media (min-width: 1025px) {
+  d-article aside {
+    float: right;
+    clear: right;
+    width: 220px;
+    margin-right: -260px;
+    margin-left: 2rem;
+    margin-top: 0;
+    margin-bottom: 1.2rem;
+    padding-left: 0.9em;
+    border-left: 2px solid var(--global-divider-color);
+  }
+}
+@media (max-width: 1024px) {
+  d-article aside {
+    display: block;
+    border-left: 3px solid var(--global-divider-color);
+    padding-left: 0.9em;
+    margin: 1em 0;
+  }
+}
+
+/* Numbered figures & tables + cross-reference links ------------------------- */
+d-article figure {
+  margin: 1.6rem 0;
+  text-align: center;
+  scroll-margin-top: 80px;
+}
+d-article figure img { max-width: 100%; height: auto; border-radius: 6px; }
+d-article figcaption {
+  font-size: 0.85rem;
+  color: var(--global-text-color-light);
+  margin-top: 0.6rem;
+  line-height: 1.5;
+  text-align: center;
+}
+d-article figcaption .fig-label { font-weight: 700; color: var(--global-text-color); }
+d-article a.xref { font-weight: 600; white-space: nowrap; }
+
+/* Tables (Markdown + inside figures) ---------------------------------------- */
+d-article table {
+  border-collapse: collapse;
+  margin: 1.2rem auto;
+  font-size: 0.92rem;
+  scroll-margin-top: 80px;
+}
+d-article figure table { margin: 0 auto; }
+d-article table th, d-article table td {
+  border: 1px solid var(--global-divider-color);
+  padding: 6px 12px;
+  text-align: left;
+}
+d-article table th { background: var(--global-code-block-bg); font-weight: 600; }

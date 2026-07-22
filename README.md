@@ -1,24 +1,53 @@
-# [Zhu Yikai Blog](https://zyksir.github.io)
+# [Yikai Zhu's Blog](https://zyksir.github.io)
 
-================================
+An al-folio **distill**-style Jekyll blog. See [`AUTHORING.md`](./AUTHORING.md) for the full
+set of features (bilingual toggle, collapsible sections, margin sidenotes, hover footnotes,
+numbered equations/figures/tables, tags filter, dark mode).
 
-## Getting Started
+## Run a local server
 
-1. [install ruby](https://ruby-lang.org/en/documentation/installation). For MacOS users, you should follow this [guide](https://mac.install.guide/ruby/13.html). After this step, if you run `ruby --version`, you will see a version greater than 3.
-2. fork this github and `git clone` into you local computer. note the name should be `[YOUR-GITHUB-USERNAME].github.io`!
-3. run `bundle install` inside the github directory.
-4. check your webite locally. run `bundle exec jekyll serve`
-5. By now, you should see your website with "http://127.0.0.1:4000/"
-
-## Replace my info with yours
-
-1. in [_config.yml](./_config.yml), change every personal information to yours.
-2. to enable disqus comment, I go to https://disqus.com/, click `get started`, click `I want to install disqus on my website`. follow their instructions you will get a js code, just copy and paste by searching.`disqus_enable`. you can watch [this video](https://disqus.com/admin/install/platforms/universalcode/). They have free services and it's enough for my use case.
-3. to enbale utterances comment, go to [utterances](https://github.com/apps/utterances) and install it. After follow this website you will get a js code, just copy and paste by searching `utterances_enable`.
-中文版见我的第一个 post(for chinese version, see my first post).
-
-## Post New Blog
+The Mac's system Ruby (2.6) is too old, so use the Homebrew Ruby. Put it on your PATH for
+the current shell:
 
 ```bash
-rake post title="TITLE" subtitle="SUBTITLE"
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+bundle install                 # first time only
+bundle exec jekyll serve       # → http://127.0.0.1:4000
 ```
+
+The site rebuilds automatically as you edit. Stop it with `Ctrl-C` (or `pkill -f jekyll`).
+
+> Deploys are built in CI with Docker (`ruby:3.2.2`) and pushed to the `gh-pages` branch —
+> see `Dockerfile` / `entrypoint.sh`. You don't need Ruby 3 locally as long as the Homebrew
+> Ruby above works.
+
+## Add a new post
+
+Fastest way — the Rake task scaffolds the file (front matter + a bilingual 中文 / English body):
+
+```bash
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+rake post title="My New Post" subtitle="An optional subtitle"
+```
+
+This creates `_posts/YYYY-MM-DD-my-new-post.md`. Then just edit it — fill in `description`
+and `tags`, write inside the `.lang-zh` / `.lang-en` blocks (delete one block if the post is
+single-language), and preview with `bundle exec jekyll serve`.
+
+Or create the file by hand under `_posts/YYYY-MM-DD-title.md`:
+
+```markdown
+---
+title: "My New Post"
+date: 2026-01-01
+description: "One-line summary shown in the byline and lists."
+tags: ["LLM", "AI Infra"]
+---
+
+Your content here…
+```
+
+`layout: post` is applied automatically; the left-margin table of contents is generated from
+your `##` / `###` headings. For toggles, sidenotes, footnotes, and numbered
+equations/figures/tables, see [`AUTHORING.md`](./AUTHORING.md).

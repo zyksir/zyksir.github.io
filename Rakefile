@@ -39,15 +39,32 @@ task :post do
     post.puts "subtitle: \"#{subtitle.gsub(/-/,' ')}\""
     post.puts "date: #{date}"
     post.puts "author: \"Yikai\""
-    post.puts "header-img: \"img/background/post-default-bg.jpg\""
+    post.puts "description: \"\"   # one-line summary shown in the byline"
     post.puts "tags: []"
+    post.puts "# toc: false        # uncomment to hide the left-margin table of contents"
     post.puts "---"
+    post.puts ""
+    post.puts "<div class=\"lang-zh\" markdown=\"1\">"
+    post.puts ""
+    post.puts "## 小节标题"
+    post.puts ""
+    post.puts "中文正文……"
+    post.puts ""
+    post.puts "</div>"
+    post.puts ""
+    post.puts "<div class=\"lang-en\" markdown=\"1\">"
+    post.puts ""
+    post.puts "## Section heading"
+    post.puts ""
+    post.puts "English body…"
+    post.puts ""
+    post.puts "</div>"
   end
 end # task :post
 
 desc "Launch preview environment"
 task :preview do
-  system "jekyll --auto --server"
+  system "bundle exec jekyll serve"
 end # task :preview
 
 #Load custom rake scripts

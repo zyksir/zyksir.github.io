@@ -1,58 +1,50 @@
 ---
 layout: page
 title: "About"
-description: "「他单纯只想把日子过得不浪费」"
-header-img: "img/zhuyikai/HKU.jpg"
-header-mask: 0.3
-multilingual: true
+description: "About Yikai Zhu."
 ---
 
-{% include multilingual-sel.html %}
+<div class="lang-en">
+  <h2>Biography</h2>
+  <p>
+    Hi, I'm Yikai Zhu. I received my Master's degree in Computer Science from the University of
+    California, Los Angeles (UCLA) in 2023. Before that, I earned my Bachelor's degree from Peking
+    University in 2020. Between 2020 and 2021, I worked at ByteDance during my gap year, and after
+    graduating from UCLA I joined Alibaba, where I worked from July 2023 to June 2025.
+  </p>
+  <p>
+    My interests lie at the intersection of machine learning and high-performance computing.
+    I currently focus on building efficient systems for generative AI, and I maintain
+    <a href="https://github.com/sgl-project/SpecForge" target="_blank" rel="noopener">SpecForge</a>,
+    an open-source training framework for speculative decoding. I also enjoy learning and
+    contributing to open-source projects in my spare time.
+  </p>
+  <p>Feel free to reach out if you're interested in collaborating!</p>
+</div>
 
-<!-- English Version -->
-<div class="en post-container">
-    {% capture about_en %}{% include about/en.md %}{% endcapture %}
-    {{ about_en | markdownify }}
+<div class="lang-zh">
+  <h2>个人简介</h2>
+  <p>
+    你好，我是 Yikai Zhu。我于 2023 年在加州大学洛杉矶分校（UCLA）获得计算机科学硕士学位，
+    在此之前于 2020 年从北京大学本科毕业。2020 到 2021 年间隔年期间我曾在字节跳动工作，
+    从 UCLA 毕业后加入阿里巴巴，工作时间为 2023 年 7 月至 2025 年 6 月。
+  </p>
+  <p>
+    我的兴趣集中在机器学习与高性能计算的交叉领域，目前专注于为生成式 AI 构建高效的系统，
+    同时维护开源投机解码训练框架
+    <a href="https://github.com/sgl-project/SpecForge" target="_blank" rel="noopener">SpecForge</a>，
+    业余时间也喜欢学习和参与开源项目。
+  </p>
+  <p>如果你对合作感兴趣，欢迎随时联系我！</p>
 </div>
 
 {% if site.utterances_enable %}
-<script src="https://utteranc.es/client.js"
-        repo="zyksir/zyksir.github.io"
-        issue-term="pathname"
-        theme="github-light"
-        crossorigin="anonymous"
-        async>
-</script>
-{% endif %}
-
-{% if site.disqus_username %}
-<!-- disqus 评论框 start -->
-<div class="comment">
-    <div id="disqus_thread" class="disqus-thread">
-
-    </div>
+<div class="comments">
+  <script src="https://utteranc.es/client.js"
+    repo="zyksir/zyksir.github.io"
+    issue-term="pathname"
+    theme="github-light"
+    crossorigin="anonymous"
+    async></script>
 </div>
-<!-- disqus 评论框 end -->
-
-<!-- disqus 公共JS代码 start (一个网页只需插入一次) -->
-<div id="disqus_thread"></div>
-<script>
-    /**
-    *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-    *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
-    /*
-    var disqus_config = function () {
-    this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
-    this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-    };
-    */
-    (function() { // DON'T EDIT BELOW THIS LINE
-    var d = document, s = d.createElement('script');
-    s.src = 'https://yikaizhu.disqus.com/embed.js';
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<!-- disqus 公共JS代码 end -->
 {% endif %}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-lang="zh">
+
+{% include head.html %}
+
+<body>
+  {% include header.html %}
+
+  <d-front-matter>
+    <script async type="text/json">{
+      "title": {{ page.title | jsonify }},
+      "description": {{ page.description | jsonify }},
+      "published": "{{ page.date | date: '%B %-d, %Y' }}",
+      "authors": [{ "author": "Yikai Zhu", "authorURL": "{{ '/' | absolute_url }}" }]
+    }</script>
+  </d-front-matter>
+
+  <div class="post distill">
+
+    <d-title>
+      <h1>{{ page.title }}</h1>
+      {% if page.description %}<p>{{ page.description }}</p>{% endif %}
+    </d-title>
+
+    <div class="post-byline">
+      <div class="byline-col">
+        <span class="byline-label"><span class="lang-zh">作者</span><span class="lang-en">Author</span></span>
+        <span class="byline-value">Yikai Zhu</span>
+      </div>
+      <div class="byline-col">
+        <span class="byline-label"><span class="lang-zh">发布于</span><span class="lang-en">Published</span></span>
+        <span class="byline-value">{{ page.date | date: '%B %-d, %Y' }}</span>
+      </div>
+      {% if page.tags.size > 0 %}
+      <div class="byline-col">
+        <span class="byline-label"><span class="lang-zh">标签</span><span class="lang-en">Tags</span></span>
+        <span class="byline-value byline-tags">
+          {% for tag in page.tags %}<a class="tag" href="{{ '/tags/' | relative_url }}#{{ tag | slugify }}">{{ tag }}</a>{% endfor %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <d-article>
+      {% unless page.toc == false %}
+      <d-contents>
+        <nav class="l-text figcaption">
+          <h3>Contents</h3>
+          <ul id="toc-list" class="section-nav"></ul>
+        </nav>
+      </d-contents>
+      {% endunless %}
+
+      {{ content }}
+    </d-article>
+
+    <d-appendix>
+      <d-footnote-list></d-footnote-list>
+    </d-appendix>
+
+    <!-- Prev / Next -->
+    <div class="wrapper post-nav">
+      {% if page.previous.url %}
+      <a class="prev" href="{{ page.previous.url | relative_url }}">&larr; {{ page.previous.title | truncate: 40 }}</a>
+      {% endif %}
+      {% if page.next.url %}
+      <a class="next" href="{{ page.next.url | relative_url }}">{{ page.next.title | truncate: 40 }} &rarr;</a>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {% include footer.html %}
+
+  <!-- Distill + math (loaded after content so custom elements upgrade cleanly).
+       NOTE: transforms.v2.js is intentionally omitted — it re-processes <pre>
+       blocks and strips Rouge's syntax-highlight spans. template.v2.js alone
+       provides the d-article grid, footnotes (hover), byline and contents. -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="{{ '/assets/js/distillpub/template.v2.js' | relative_url }}"></script>
+  <script src="{{ '/assets/js/distillpub/overrides.js' | relative_url }}"></script>
+
+  <!-- Prism autoloader: distill's bundled Prism only covers a few languages,
+       so we re-highlight with the full CDN Prism, which auto-loads any grammar
+       (cpp, cuda, bash, rust, …) on demand. Our token colors live in _syntax.scss. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script>
+    (function () {
+      function rehighlight() {
+        if (!window.Prism) return;
+        if (Prism.plugins && Prism.plugins.autoloader) {
+          Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
+        }
+        Prism.highlightAll();
+      }
+      window.addEventListener('load', function () { setTimeout(rehighlight, 500); });
+    })();
+  </script>
+
+  {% include mathjax.html %}
+</body>
+
+</html>

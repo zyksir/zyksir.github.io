@@ -2,15 +2,13 @@
 layout: default
 title: Offline
 hide-in-nav: true
-description: "阅读过的页面可以在离线时访问哦 ;)"
-header-img: "img/background/404-bg.jpg"
+description: "You are offline."
 permalink: /offline.html
 ---
 
-
-<!-- Page Header -->
-{% include intro-header.html type="page" %}
-
-<script>
-	document.body.classList.add('page-fullscreen');
-</script>
+<div class="wrapper page-content" style="text-align:center; padding-top:60px;">
+  <h1><span class="lang-zh">离线中</span><span class="lang-en">Offline</span></h1>
+  <p class="lang-zh">阅读过的页面可以在离线时访问哦 ;)</p>
+  <p class="lang-en">Pages you've visited before are available offline ;)</p>
+  <p><a href="{{ '/' | relative_url }}">&larr; <span class="lang-zh">返回首页</span><span class="lang-en">Back home</span></a></p>
+</div>
